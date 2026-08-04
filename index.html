@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Paper Toss 3D - Mobile Edition</title>
+  <meta name="description" content="Play Paper Toss 3D online! Responsive mobile game with energy meter, haptic feedback, and dynamic bin placement.">
+  
+  <!-- CSS Design System -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Three.js 3D Engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+  <!-- WebGL 3D Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- UI Overlay Layer -->
+  <div id="ui-overlay">
+    
+    <!-- Responsive Mobile Header -->
+    <header class="ios18-header">
+      <!-- Row 1: Brand & System Action Icons -->
+      <div class="header-row row-top">
+        <div class="brand-pill interactive">
+          <span class="brand-icon">🗑️</span>
+          <span class="brand-title">PAPER TOSS</span>
+        </div>
+
+        <div class="icon-actions interactive">
+          <button id="audio-btn" class="icon-btn" title="Toggle Audio">🔊</button>
+          <button id="reset-btn" class="icon-btn" title="Reset Game">🔄</button>
+          <button id="help-btn" class="icon-btn" title="How to Play">❓</button>
+        </div>
+      </div>
+
+      <!-- Row 2: Target Distance & Score Badges -->
+      <div class="header-row row-bottom">
+        <div class="target-badge interactive">
+          <span class="target-icon">🎯</span>
+          <span id="target-distance-val" class="target-val">5.0m</span>
+          <span id="target-offset-val" class="target-sub">ON FLOOR</span>
+        </div>
+
+        <div class="score-actions interactive">
+          <div id="streak-badge" class="streak-pill">
+            <span>🔥</span>
+            <span id="streak-count">0</span>
+          </div>
+
+          <div class="score-pill">
+            <span class="score-lbl">SCORE</span>
+            <span id="score-val" class="score-num">0</span>
+          </div>
+
+          <div class="score-pill highlight">
+            <span class="score-lbl">BEST</span>
+            <span id="highscore-val" class="score-num">0</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Dynamic Touch Flick Energy / Power Meter -->
+    <div id="energy-meter" class="energy-meter-hud">
+      <div class="meter-label">
+        <span class="meter-title">PWR</span>
+        <span id="meter-percent" class="meter-val">0%</span>
+      </div>
+      <div class="meter-track">
+        <div id="meter-fill" class="meter-fill-bar"></div>
+      </div>
+      <div id="meter-dist-est" class="meter-est">EST. 0.0m</div>
+    </div>
+
+    <!-- Dynamic Popup Message Container -->
+    <div id="popup-container"></div>
+
+    <!-- Swipe Guide Prompt -->
+    <div id="swipe-guide">
+      <div class="guide-arrow"></div>
+      <span class="guide-text">SWIPE UP TO FLICK</span>
+    </div>
+
+  </div>
+
+  <!-- How to Play Instructions Modal -->
+  <div id="help-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-title">
+        <span>How to Play</span>
+        <button id="modal-close" class="modal-close">&times;</button>
+      </div>
+
+      <div class="instruction-list">
+        <div class="instruction-item">
+          <div class="instruction-num">1</div>
+          <span><strong>Energy Meter:</strong> Watch the live power gauge when dragging up to gauge toss distance!</span>
+        </div>
+        <div class="instruction-item">
+          <div class="instruction-num">2</div>
+          <span><strong>Swipe Up / Touch Drag:</strong> Flick the paper ball towards the trash bin.</span>
+        </div>
+        <div class="instruction-item">
+          <div class="instruction-num">3</div>
+          <span><strong>Dynamic Bin Target:</strong> The trash bin moves to random locations on tables, chairs, or floors!</span>
+        </div>
+        <div class="instruction-item">
+          <div class="instruction-num">4</div>
+          <span><strong>Haptic Feedback:</strong> Enjoy subtle vibration pulses on launch, rim hits, and scores.</span>
+        </div>
+      </div>
+
+      <button id="modal-start-btn" class="btn-primary">PLAY NOW</button>
+    </div>
+  </div>
+
+  <!-- Application Scripts -->
+  <script src="js/audio.js"></script>
+  <script src="js/physics.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/controls.js"></script>
+  <script src="js/game.js"></script>
+
+</body>
+</html>
