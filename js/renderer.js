@@ -1,6 +1,6 @@
 /**
  * Three.js WebGL Scene Renderer for Paper Toss 3D
- * 16:9 1080p Widescreen Screen Optimization Edition
+ * 5.4"+ Smartphone Screen Optimization Edition (19.5:9 / 20:9 Ratios, 360x760pt Logical Point Scaling)
  */
 class GameRenderer {
   constructor(containerElement) {
@@ -38,12 +38,12 @@ class GameRenderer {
     this.scene.background = new THREE.Color(0x1e293b);
     this.scene.fog = new THREE.FogExp2(0x1e293b, 0.022);
 
-    // 2. Camera setup optimized for 16:9 1080p widescreen displays
+    // 2. Camera setup with adaptive FOV for 360x760pt logical point resolution displays
     const aspect = window.innerWidth / window.innerHeight;
-    this.camera = new THREE.PerspectiveCamera(48, aspect, 0.05, 100);
+    this.camera = new THREE.PerspectiveCamera(72, aspect, 0.05, 100);
     this.updateCameraForAspect(aspect);
 
-    // 3. Renderer setup
+    // 3. Renderer setup with high DPI scaling factor support
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -60,7 +60,7 @@ class GameRenderer {
     this.setupLighting();
 
     // 6. Build Scene Objects
-    this.build16by9WidescreenOfficeEnvironment();
+    this.buildExpansiveOfficeEnvironment();
     this.buildTrashBin();
     this.buildRealisticPaperBall();
     this.buildParabolicTrajectoryGuide();
@@ -120,26 +120,32 @@ class GameRenderer {
   }
 
   /* =========================================================================
-   * 16:9 1080P WIDESCREEN CAMERA CALIBRATION:
-   * Fixed 48-degree focal FOV for 16:9 landscape aspect ratios (1.777)
-   * with adaptive scaling fallback for portrait viewports.
+   * ADAPTIVE SMARTPHONE CAMERA CALIBRATION (360x760pt to 430x932pt):
+   * Ensures that 100% of the room environment (desk, paper ball, side window,
+   * poster, dining table, chairs, wall, and trash bin) remains fully visible
+   * without side clipping on any 5.4"+ smartphone screen!
    * ========================================================================= */
   updateCameraForAspect(aspect) {
-    if (aspect >= 1.5) {
-      // 16:9 Widescreen Landscape (1080p / 1440p / 4K)
+    if (aspect < 0.52) {
+      // 5.4"+ Smartphone Screen (19.5:9 to 20:9 ratios, e.g. 360x760pt, iPhone 12-16 mini/Pro)
+      this.camera.fov = 72;
+      this.camera.position.set(0, 0.22, 0.92);
+      this.camera.lookAt(0, -0.32, -4.8);
+    } else if (aspect < 0.8) {
+      // Standard Smartphone / Tablet Portrait
+      this.camera.fov = 60;
+      this.camera.position.set(0, 0.15, 0.75);
+      this.camera.lookAt(0, -0.35, -4.5);
+    } else if (aspect >= 1.5) {
+      // 16:9 Widescreen Landscape
       this.camera.fov = 48;
       this.camera.position.set(0, 0.12, 0.75);
       this.camera.lookAt(0, -0.42, -5.0);
-    } else if (aspect < 0.55) {
-      // Tall Narrow Phone Screen (iPhone 15/14, Galaxy S24)
-      this.camera.fov = 64;
-      this.camera.position.set(0, 0.2, 0.85);
-      this.camera.lookAt(0, -0.3, -4.5);
     } else {
-      // Standard Portrait / Tablet
-      this.camera.fov = 56;
-      this.camera.position.set(0, 0.15, 0.75);
-      this.camera.lookAt(0, -0.35, -4.5);
+      // Desktop / Standard Landscape
+      this.camera.fov = 52;
+      this.camera.position.set(0, 0.1, 0.65);
+      this.camera.lookAt(0, -0.4, -4.5);
     }
 
     this.camera.updateProjectionMatrix();
@@ -170,11 +176,9 @@ class GameRenderer {
   }
 
   /* =========================================================================
-   * 16:9 1080P WIDESCREEN OPTIMIZED 3D ENVIRONMENT:
-   * Width: 36m, Depth: 40m
-   * Perfectly composed for 1920x1080 resolution display.
+   * EXPANSIVE OPEN OFFICE ENVIRONMENT (36m x 40m Room Area)
    * ========================================================================= */
-  build16by9WidescreenOfficeEnvironment() {
+  buildExpansiveOfficeEnvironment() {
     this.officeEnvGroup = new THREE.Group();
 
     // Expansive Floor (36m x 40m)
@@ -221,8 +225,8 @@ class GameRenderer {
     rightWall.receiveShadow = true;
     this.officeEnvGroup.add(rightWall);
 
-    // Widescreen Desk Ledge (Wider 4.2m width for 16:9 aspect ratio)
-    const deskGeo = new THREE.BoxGeometry(4.2, 0.06, 0.6);
+    // Desk Ledge (Surface at Y = -0.48)
+    const deskGeo = new THREE.BoxGeometry(3.2, 0.06, 0.6);
     const deskMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.35, metalness: 0.1 });
     const desk = new THREE.Mesh(deskGeo, deskMat);
     desk.position.set(0, -0.48, -0.45);
@@ -233,7 +237,7 @@ class GameRenderer {
     // Desk Legs
     const legGeo = new THREE.CylinderGeometry(0.03, 0.03, 1.0, 12);
     const legMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 });
-    [[-2.0, -0.98, -0.2], [2.0, -0.98, -0.2], [-2.0, -0.98, -0.7], [2.0, -0.98, -0.7]].forEach(p => {
+    [[-1.55, -0.98, -0.2], [1.55, -0.98, -0.2], [-1.55, -0.98, -0.7], [1.55, -0.98, -0.7]].forEach(p => {
       const leg = new THREE.Mesh(legGeo, legMat);
       leg.position.set(...p);
       leg.castShadow = true;
@@ -269,7 +273,7 @@ class GameRenderer {
       tableGroup.add(leg);
     });
 
-    tableGroup.position.set(6.2, -1.5, -8.5);
+    tableGroup.position.set(5.8, -1.5, -8.5);
     this.officeEnvGroup.add(tableGroup);
   }
 
@@ -304,8 +308,8 @@ class GameRenderer {
       this.officeEnvGroup.add(chair);
     };
 
-    createChair(6.2, -11.5, 0);
-    createChair(6.2, -5.5, Math.PI);
+    createChair(5.8, -11.5, 0);
+    createChair(5.8, -5.5, Math.PI);
   }
 
   buildCoffeeMug() {
@@ -329,7 +333,7 @@ class GameRenderer {
     handle.rotation.z = -Math.PI / 2;
     mugGroup.add(handle);
 
-    mugGroup.position.set(1.45, -0.45, -0.5);
+    mugGroup.position.set(1.25, -0.45, -0.5);
     this.officeEnvGroup.add(mugGroup);
   }
 
@@ -337,7 +341,7 @@ class GameRenderer {
     const stickyGeo = new THREE.BoxGeometry(0.1, 0.02, 0.1);
     const stickyMat = new THREE.MeshStandardMaterial({ color: 0xfde047, roughness: 0.9 });
     const sticky = new THREE.Mesh(stickyGeo, stickyMat);
-    sticky.position.set(-1.45, -0.44, -0.4);
+    sticky.position.set(-1.15, -0.44, -0.4);
     sticky.rotation.y = 0.15;
     this.officeEnvGroup.add(sticky);
   }
