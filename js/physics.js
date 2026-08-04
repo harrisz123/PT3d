@@ -1,15 +1,15 @@
 /**
  * 3D Physics Simulation Engine for Paper Toss 3D
- * Compact Paper Ball & Spacious Environment Edition
+ * Compact Paper Ball & Widescreen Environment Edition
  */
 class PhysicsEngine {
   constructor() {
     this.gravity = 9.81;
     this.airDrag = 0.12;
-    this.ballRadius = 0.075; // Decreased compact paper ball radius
+    this.ballRadius = 0.05; // 5cm radius (10cm compact ball)
     
-    // Ball Start Position - Resting flush on top of table surface (Y = -0.405)
-    this.startPos = { x: 0, y: -0.405, z: -0.45 };
+    // Ball Start Position - Resting flush on top of desk (Y = -0.55, Z = -0.75)
+    this.startPos = { x: 0, y: -0.55, z: -0.75 };
 
     // Ball State
     this.position = { ...this.startPos };
@@ -169,10 +169,10 @@ class PhysicsEngine {
     // 3. SURFACE / FLOOR COLLISION
     let collisionY = -1.45 + this.ballRadius;
 
-    if (Math.abs(this.position.x - 6.5) < 1.8 && Math.abs(this.position.z - (-9.0)) < 2.0) {
+    if (Math.abs(this.position.x - 5.8) < 1.8 && Math.abs(this.position.z - (-8.5)) < 2.0) {
       collisionY = -0.5 + this.ballRadius; // Table top surface height
-    } else if (Math.abs(this.position.x - 6.5) < 1.0 && 
-               (Math.abs(this.position.z - (-12.0)) < 1.0 || Math.abs(this.position.z - (-6.0)) < 1.0)) {
+    } else if (Math.abs(this.position.x - 5.8) < 1.0 && 
+               (Math.abs(this.position.z - (-11.5)) < 1.0 || Math.abs(this.position.z - (-5.5)) < 1.0)) {
       collisionY = -1.0 + this.ballRadius; // Chair seat height
     }
 

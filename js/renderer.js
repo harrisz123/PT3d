@@ -1,6 +1,6 @@
 /**
  * Three.js WebGL Scene Renderer for Paper Toss 3D
- * 5.4"+ Smartphone Screen Optimization Edition (19.5:9 / 20:9 Ratios, 360x760pt Logical Point Scaling)
+ * Apple Senior Engineering Aesthetic Edition (Proportional Compact Paper Ball & Crisp Office Environment)
  */
 class GameRenderer {
   constructor(containerElement) {
@@ -36,14 +36,14 @@ class GameRenderer {
     // 1. Scene setup
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x1e293b);
-    this.scene.fog = new THREE.FogExp2(0x1e293b, 0.022);
+    this.scene.fog = new THREE.FogExp2(0x1e293b, 0.02);
 
-    // 2. Camera setup with adaptive FOV for 360x760pt logical point resolution displays
+    // 2. Perspective Camera tuned for distortion-free smartphone rendering
     const aspect = window.innerWidth / window.innerHeight;
-    this.camera = new THREE.PerspectiveCamera(72, aspect, 0.05, 100);
+    this.camera = new THREE.PerspectiveCamera(54, aspect, 0.05, 100);
     this.updateCameraForAspect(aspect);
 
-    // 3. Renderer setup with high DPI scaling factor support
+    // 3. WebGL Renderer with High-DPI support
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -56,13 +56,13 @@ class GameRenderer {
     // 4. Textures
     this.notebookTexture = this.generateRealisticNotebookTexture();
 
-    // 5. Lights
+    // 5. Lighting System
     this.setupLighting();
 
     // 6. Build Scene Objects
-    this.buildExpansiveOfficeEnvironment();
+    this.buildCrispOfficeEnvironment();
     this.buildTrashBin();
-    this.buildRealisticPaperBall();
+    this.buildRealisticCompactPaperBall();
     this.buildParabolicTrajectoryGuide();
 
     // Window Resize Event
@@ -111,7 +111,6 @@ class GameRenderer {
     ctx.font = 'bold 36px sans-serif';
     ctx.fillText('PAPER TOSS 3D', 180, 180);
     ctx.fillText('E = mc²', 180, 310);
-    ctx.fillText('Score: 100%', 180, 440);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
@@ -119,43 +118,36 @@ class GameRenderer {
     return texture;
   }
 
-  /* =========================================================================
-   * ADAPTIVE SMARTPHONE CAMERA CALIBRATION (360x760pt to 430x932pt):
-   * Ensures that 100% of the room environment (desk, paper ball, side window,
-   * poster, dining table, chairs, wall, and trash bin) remains fully visible
-   * without side clipping on any 5.4"+ smartphone screen!
-   * ========================================================================= */
   updateCameraForAspect(aspect) {
-    if (aspect < 0.52) {
-      // 5.4"+ Smartphone Screen (19.5:9 to 20:9 ratios, e.g. 360x760pt, iPhone 12-16 mini/Pro)
-      this.camera.fov = 72;
-      this.camera.position.set(0, 0.22, 0.92);
-      this.camera.lookAt(0, -0.32, -4.8);
+    if (aspect < 0.55) {
+      // Modern Smartphone Portrait (e.g. 360x760pt, iPhone 12-16)
+      this.camera.fov = 54;
+      this.camera.position.set(0, 0.35, 1.45);
+      this.camera.lookAt(0, -0.25, -4.5);
     } else if (aspect < 0.8) {
-      // Standard Smartphone / Tablet Portrait
-      this.camera.fov = 60;
-      this.camera.position.set(0, 0.15, 0.75);
-      this.camera.lookAt(0, -0.35, -4.5);
-    } else if (aspect >= 1.5) {
-      // 16:9 Widescreen Landscape
-      this.camera.fov = 48;
-      this.camera.position.set(0, 0.12, 0.75);
-      this.camera.lookAt(0, -0.42, -5.0);
-    } else {
-      // Desktop / Standard Landscape
+      // Standard Portrait
       this.camera.fov = 52;
-      this.camera.position.set(0, 0.1, 0.65);
-      this.camera.lookAt(0, -0.4, -4.5);
+      this.camera.position.set(0, 0.3, 1.35);
+      this.camera.lookAt(0, -0.3, -4.5);
+    } else if (aspect >= 1.5) {
+      // Widescreen Landscape
+      this.camera.fov = 46;
+      this.camera.position.set(0, 0.2, 1.0);
+      this.camera.lookAt(0, -0.35, -5.0);
+    } else {
+      this.camera.fov = 48;
+      this.camera.position.set(0, 0.22, 1.1);
+      this.camera.lookAt(0, -0.3, -4.5);
     }
 
     this.camera.updateProjectionMatrix();
   }
 
   setupLighting() {
-    const ambientLight = new THREE.AmbientLight(0xfef3c7, 0.7);
+    const ambientLight = new THREE.AmbientLight(0xfef3c7, 0.75);
     this.scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.4);
+    const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.45);
     dirLight.position.set(4, 10, 4);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 2048;
@@ -170,22 +162,22 @@ class GameRenderer {
     dirLight.shadow.radius = 3;
     this.scene.add(dirLight);
 
-    const windowLight = new THREE.DirectionalLight(0x60a5fa, 0.55);
+    const windowLight = new THREE.DirectionalLight(0x60a5fa, 0.6);
     windowLight.position.set(-8, 5, -4);
     this.scene.add(windowLight);
   }
 
   /* =========================================================================
-   * EXPANSIVE OPEN OFFICE ENVIRONMENT (36m x 40m Room Area)
+   * CRISP 3D OFFICE ENVIRONMENT DESIGN SYSTEM
    * ========================================================================= */
-  buildExpansiveOfficeEnvironment() {
+  buildCrispOfficeEnvironment() {
     this.officeEnvGroup = new THREE.Group();
 
-    // Expansive Floor (36m x 40m)
+    // Expansive Floor with Floor Plank Grid Pattern
     const floorGeo = new THREE.PlaneGeometry(36, 40);
     const floorMat = new THREE.MeshStandardMaterial({
       color: 0x334155,
-      roughness: 0.85,
+      roughness: 0.8,
       metalness: 0.05
     });
     const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -203,7 +195,7 @@ class GameRenderer {
 
     // Back Wall (Z = -28m)
     const wallGeo = new THREE.PlaneGeometry(36, 18);
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.95 });
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.92 });
     const backWall = new THREE.Mesh(wallGeo, wallMat);
     backWall.position.set(0, 7.5, -28);
     backWall.receiveShadow = true;
@@ -225,24 +217,21 @@ class GameRenderer {
     rightWall.receiveShadow = true;
     this.officeEnvGroup.add(rightWall);
 
-    // Desk Ledge (Surface at Y = -0.48)
-    const deskGeo = new THREE.BoxGeometry(3.2, 0.06, 0.6);
-    const deskMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.35, metalness: 0.1 });
+    // Sleek Desk Ledge (Sits at lower edge Y = -0.63, Z = -0.75)
+    const deskGeo = new THREE.BoxGeometry(3.6, 0.12, 0.8);
+    const deskMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4, metalness: 0.2 });
     const desk = new THREE.Mesh(deskGeo, deskMat);
-    desk.position.set(0, -0.48, -0.45);
+    desk.position.set(0, -0.63, -0.75);
     desk.castShadow = true;
     desk.receiveShadow = true;
     this.officeEnvGroup.add(desk);
 
-    // Desk Legs
-    const legGeo = new THREE.CylinderGeometry(0.03, 0.03, 1.0, 12);
-    const legMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 });
-    [[-1.55, -0.98, -0.2], [1.55, -0.98, -0.2], [-1.55, -0.98, -0.7], [1.55, -0.98, -0.7]].forEach(p => {
-      const leg = new THREE.Mesh(legGeo, legMat);
-      leg.position.set(...p);
-      leg.castShadow = true;
-      this.officeEnvGroup.add(leg);
-    });
+    // Bevelled Desk Trim Accent
+    const trimGeo = new THREE.BoxGeometry(3.64, 0.02, 0.04);
+    const trimMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.2, metalness: 0.8 });
+    const trim = new THREE.Mesh(trimGeo, trimMat);
+    trim.position.set(0, -0.57, -0.35);
+    this.officeEnvGroup.add(trim);
 
     this.buildRightSideTable();
     this.buildChairsAroundTable();
@@ -314,34 +303,34 @@ class GameRenderer {
 
   buildCoffeeMug() {
     const mugGroup = new THREE.Group();
-    const mugGeo = new THREE.CylinderGeometry(0.06, 0.05, 0.12, 16);
+    const mugGeo = new THREE.CylinderGeometry(0.05, 0.04, 0.1, 16);
     const mugMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.2 });
     const mug = new THREE.Mesh(mugGeo, mugMat);
-    mug.position.y = 0.06;
+    mug.position.y = 0.05;
     mug.castShadow = true;
     mugGroup.add(mug);
 
-    const liquidGeo = new THREE.CylinderGeometry(0.055, 0.055, 0.015, 16);
+    const liquidGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.012, 16);
     const liquidMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.1 });
     const liquid = new THREE.Mesh(liquidGeo, liquidMat);
-    liquid.position.y = 0.11;
+    liquid.position.y = 0.095;
     mugGroup.add(liquid);
 
-    const handleGeo = new THREE.TorusGeometry(0.04, 0.012, 8, 16, Math.PI);
+    const handleGeo = new THREE.TorusGeometry(0.035, 0.01, 8, 16, Math.PI);
     const handle = new THREE.Mesh(handleGeo, mugMat);
-    handle.position.set(0.06, 0.06, 0);
+    handle.position.set(0.05, 0.05, 0);
     handle.rotation.z = -Math.PI / 2;
     mugGroup.add(handle);
 
-    mugGroup.position.set(1.25, -0.45, -0.5);
+    mugGroup.position.set(1.1, -0.57, -0.8);
     this.officeEnvGroup.add(mugGroup);
   }
 
   buildDeskAccessories() {
-    const stickyGeo = new THREE.BoxGeometry(0.1, 0.02, 0.1);
+    const stickyGeo = new THREE.BoxGeometry(0.08, 0.015, 0.08);
     const stickyMat = new THREE.MeshStandardMaterial({ color: 0xfde047, roughness: 0.9 });
     const sticky = new THREE.Mesh(stickyGeo, stickyMat);
-    sticky.position.set(-1.15, -0.44, -0.4);
+    sticky.position.set(-1.1, -0.56, -0.75);
     sticky.rotation.y = 0.15;
     this.officeEnvGroup.add(sticky);
   }
@@ -460,7 +449,7 @@ class GameRenderer {
   buildParabolicTrajectoryGuide() {
     this.trajectoryGroup = new THREE.Group();
 
-    const dotGeo = new THREE.SphereGeometry(0.035, 12, 12);
+    const dotGeo = new THREE.SphereGeometry(0.03, 12, 12);
     for (let i = 0; i < this.numTrajectoryDots; i++) {
       const dotMat = new THREE.MeshBasicMaterial({
         color: 0x38bdf8,
@@ -472,7 +461,7 @@ class GameRenderer {
       this.trajectoryGroup.add(dot);
     }
 
-    const ringGeo = new THREE.TorusGeometry(0.36, 0.025, 16, 32);
+    const ringGeo = new THREE.TorusGeometry(0.36, 0.022, 16, 32);
     const ringMat = new THREE.MeshBasicMaterial({
       color: 0x38bdf8,
       transparent: true,
@@ -566,17 +555,17 @@ class GameRenderer {
   }
 
   /* ----------------------------------------------------
-   * DECREASED COMPACT PAPER BALL (0.075 RADIUS)
+   * REALISTIC COMPACT PAPER BALL (0.05 RADIUS)
    * ---------------------------------------------------- */
-  buildRealisticPaperBall() {
-    const baseGeo = new THREE.IcosahedronGeometry(0.075, 3);
+  buildRealisticCompactPaperBall() {
+    const baseGeo = new THREE.IcosahedronGeometry(0.05, 3);
     const posAttr = baseGeo.attributes.position;
     const vertex = new THREE.Vector3();
 
     for (let i = 0; i < posAttr.count; i++) {
       vertex.fromBufferAttribute(posAttr, i);
-      const foldNoise = (Math.sin(vertex.x * 28) * Math.cos(vertex.z * 28) + Math.sin(vertex.y * 28)) * 0.016;
-      const crinkleNoise = (Math.sin(vertex.x * 65 + vertex.y * 65) + Math.cos(vertex.z * 65)) * 0.009;
+      const foldNoise = (Math.sin(vertex.x * 35) * Math.cos(vertex.z * 35) + Math.sin(vertex.y * 35)) * 0.011;
+      const crinkleNoise = (Math.sin(vertex.x * 80 + vertex.y * 80) + Math.cos(vertex.z * 80)) * 0.006;
       const totalDisplacement = foldNoise + crinkleNoise;
       vertex.addScaledVector(vertex.clone().normalize(), totalDisplacement);
       posAttr.setXYZ(i, vertex.x, vertex.y, vertex.z);
@@ -586,7 +575,7 @@ class GameRenderer {
     this.paperMaterial = new THREE.MeshStandardMaterial({
       map: this.notebookTexture,
       bumpMap: this.notebookTexture,
-      bumpScale: 0.07,
+      bumpScale: 0.05,
       roughness: 0.96,
       metalness: 0.01,
       color: 0xffffff
@@ -596,7 +585,7 @@ class GameRenderer {
     this.paperBallMesh.castShadow = true;
     this.paperBallMesh.receiveShadow = true;
     
-    this.paperBallMesh.position.set(0, -0.405, -0.45);
+    this.paperBallMesh.position.set(0, -0.55, -0.75);
     this.scene.add(this.paperBallMesh);
 
     const shadowCanvas = document.createElement('canvas');
@@ -604,14 +593,14 @@ class GameRenderer {
     shadowCanvas.height = 128;
     const sCtx = shadowCanvas.getContext('2d');
     const grad = sCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
-    grad.addColorStop(0, 'rgba(0,0,0,0.28)');
-    grad.addColorStop(0.6, 'rgba(0,0,0,0.12)');
+    grad.addColorStop(0, 'rgba(0,0,0,0.3)');
+    grad.addColorStop(0.6, 'rgba(0,0,0,0.1)');
     grad.addColorStop(1, 'rgba(0,0,0,0)');
     sCtx.fillStyle = grad;
     sCtx.fillRect(0, 0, 128, 128);
 
     const shadowTex = new THREE.CanvasTexture(shadowCanvas);
-    const shadowGeo = new THREE.PlaneGeometry(0.22, 0.22);
+    const shadowGeo = new THREE.PlaneGeometry(0.18, 0.18);
     const shadowMat = new THREE.MeshBasicMaterial({
       map: shadowTex,
       transparent: true,
@@ -619,7 +608,7 @@ class GameRenderer {
     });
     this.ballShadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
     this.ballShadowMesh.rotation.x = -Math.PI / 2;
-    this.ballShadowMesh.position.set(0, -0.449, -0.45);
+    this.ballShadowMesh.position.set(0, -0.57, -0.75);
     this.scene.add(this.ballShadowMesh);
   }
 
@@ -644,10 +633,10 @@ class GameRenderer {
     // 2. Update Table Contact Shadow
     if (this.ballShadowMesh) {
       if (physicsEngine.state === 'IDLE') {
-        this.ballShadowMesh.position.set(physicsEngine.position.x, -0.449, physicsEngine.position.z);
+        this.ballShadowMesh.position.set(physicsEngine.position.x, -0.57, physicsEngine.position.z);
         this.ballShadowMesh.material.opacity = 1.0;
       } else {
-        const heightAboveTable = physicsEngine.position.y - (-0.405);
+        const heightAboveTable = physicsEngine.position.y - (-0.55);
         this.ballShadowMesh.material.opacity = Math.max(0, 1.0 - heightAboveTable * 4.0);
       }
     }
