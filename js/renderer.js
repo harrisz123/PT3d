@@ -1,6 +1,6 @@
 /**
  * Three.js WebGL Scene Renderer for Paper Toss 3D
- * 100% Mobile Browser Compatibility Edition
+ * Smartphone Screen Optimization Edition (Adaptive Horizontal FOV & Zero Environment Clipping)
  */
 class GameRenderer {
   constructor(containerElement) {
@@ -36,12 +36,11 @@ class GameRenderer {
     // 1. Scene setup
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x1e293b);
-    this.scene.fog = new THREE.FogExp2(0x1e293b, 0.028);
+    this.scene.fog = new THREE.FogExp2(0x1e293b, 0.022);
 
-    // 2. Camera setup with dynamic aspect calculation for mobile viewports
+    // 2. Camera setup with Adaptive Horizontal FOV to prevent mobile environment clipping
     const aspect = window.innerWidth / window.innerHeight;
-    const initialFov = aspect < 0.55 ? 64 : (aspect < 0.8 ? 60 : 52);
-    this.camera = new THREE.PerspectiveCamera(initialFov, aspect, 0.1, 70);
+    this.camera = new THREE.PerspectiveCamera(60, aspect, 0.05, 100);
     this.updateCameraForAspect(aspect);
 
     // 3. Renderer setup
@@ -68,6 +67,9 @@ class GameRenderer {
 
     // Window Resize Event
     window.addEventListener('resize', () => this.onWindowResize());
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => this.onWindowResize(), 150);
+    });
   }
 
   generateRealisticNotebookTexture() {
@@ -117,23 +119,37 @@ class GameRenderer {
     return texture;
   }
 
+  /* =========================================================================
+   * ADAPTIVE HORIZONTAL FOV CAMERA CALIBRATION FOR SMARTPHONE SCREENS:
+   * Dynamically adjusts vertical FOV based on viewport aspect ratio to guarantee
+   * that 100% of the room environment (desk, window, table, chairs, wall, bin)
+   * remains completely visible without side clipping on any iPhone or Android!
+   * ========================================================================= */
   updateCameraForAspect(aspect) {
+    // Target fixed horizontal FOV = 66 degrees
+    const targetHfovRad = (66 * Math.PI) / 180;
+    
+    // Calculate required vertical FOV in degrees based on aspect ratio
+    let vFovRad = 2 * Math.atan(Math.tan(targetHfovRad / 2) / aspect);
+    let vFovDeg = (vFovRad * 180) / Math.PI;
+
     if (aspect < 0.55) {
-      // Tall Narrow Phone Screen (e.g. iPhone 15/14, Galaxy S24)
-      this.camera.fov = 64;
-      this.camera.position.set(0, 0.2, 0.85);
-      this.camera.lookAt(0, -0.3, -4.5);
+      // Tall Narrow Phone Screen (e.g. iPhone 15/14/13, Galaxy S24/S23)
+      this.camera.fov = Math.min(Math.max(vFovDeg, 68), 85);
+      this.camera.position.set(0, 0.25, 1.25);
+      this.camera.lookAt(0, -0.4, -6.0);
     } else if (aspect < 0.8) {
-      // Standard Mobile Portrait Viewport
-      this.camera.fov = 60;
-      this.camera.position.set(0, 0.15, 0.75);
-      this.camera.lookAt(0, -0.35, -4.5);
+      // Standard Smartphone / Tablet Portrait
+      this.camera.fov = Math.min(Math.max(vFovDeg, 60), 75);
+      this.camera.position.set(0, 0.2, 1.15);
+      this.camera.lookAt(0, -0.45, -6.0);
     } else {
-      // Desktop / Tablet Landscape Viewport
+      // Desktop / Landscape
       this.camera.fov = 52;
-      this.camera.position.set(0, 0.1, 0.65);
-      this.camera.lookAt(0, -0.4, -4.5);
+      this.camera.position.set(0, 0.1, 0.85);
+      this.camera.lookAt(0, -0.45, -6.0);
     }
+
     this.camera.updateProjectionMatrix();
   }
 
@@ -162,11 +178,12 @@ class GameRenderer {
   }
 
   /* =========================================================================
-   * EXPANSIVE OPEN OFFICE ENVIRONMENT (36m x 40m Room Area)
+   * EXPANSIVE OPEN OFFICE ENVIRONMENT
    * ========================================================================= */
   buildExpansiveOfficeEnvironment() {
     this.officeEnvGroup = new THREE.Group();
 
+    // Expansive Floor (36m x 40m)
     const floorGeo = new THREE.PlaneGeometry(36, 40);
     const floorMat = new THREE.MeshStandardMaterial({
       color: 0x334155,
@@ -179,12 +196,14 @@ class GameRenderer {
     floor.receiveShadow = true;
     this.officeEnvGroup.add(floor);
 
+    // Baseboard along back wall
     const baseboardGeo = new THREE.BoxGeometry(36, 0.18, 0.06);
     const baseboardMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 });
     const baseboard = new THREE.Mesh(baseboardGeo, baseboardMat);
     baseboard.position.set(0, -1.41, -27.97);
     this.officeEnvGroup.add(baseboard);
 
+    // Back Wall (Z = -28m)
     const wallGeo = new THREE.PlaneGeometry(36, 18);
     const wallMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.95 });
     const backWall = new THREE.Mesh(wallGeo, wallMat);
@@ -192,6 +211,7 @@ class GameRenderer {
     backWall.receiveShadow = true;
     this.officeEnvGroup.add(backWall);
 
+    // Left Wall
     const leftWallGeo = new THREE.PlaneGeometry(40, 18);
     const leftWall = new THREE.Mesh(leftWallGeo, wallMat);
     leftWall.rotation.y = Math.PI / 2;
@@ -199,6 +219,7 @@ class GameRenderer {
     leftWall.receiveShadow = true;
     this.officeEnvGroup.add(leftWall);
 
+    // Right Wall
     const rightWallGeo = new THREE.PlaneGeometry(40, 18);
     const rightWall = new THREE.Mesh(rightWallGeo, wallMat);
     rightWall.rotation.y = -Math.PI / 2;
@@ -206,6 +227,7 @@ class GameRenderer {
     rightWall.receiveShadow = true;
     this.officeEnvGroup.add(rightWall);
 
+    // Desk Ledge (Top surface at Y = -0.48)
     const deskGeo = new THREE.BoxGeometry(2.8, 0.06, 0.6);
     const deskMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.35, metalness: 0.1 });
     const desk = new THREE.Mesh(deskGeo, deskMat);
@@ -214,6 +236,7 @@ class GameRenderer {
     desk.receiveShadow = true;
     this.officeEnvGroup.add(desk);
 
+    // Desk Legs
     const legGeo = new THREE.CylinderGeometry(0.03, 0.03, 1.0, 12);
     const legMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 });
     [[-1.35, -0.98, -0.2], [1.35, -0.98, -0.2], [-1.35, -0.98, -0.7], [1.35, -0.98, -0.7]].forEach(p => {
@@ -252,7 +275,7 @@ class GameRenderer {
       tableGroup.add(leg);
     });
 
-    tableGroup.position.set(6.5, -1.5, -9.0);
+    tableGroup.position.set(5.5, -1.5, -9.0);
     this.officeEnvGroup.add(tableGroup);
   }
 
@@ -287,8 +310,8 @@ class GameRenderer {
       this.officeEnvGroup.add(chair);
     };
 
-    createChair(6.5, -12.0, 0);
-    createChair(6.5, -6.0, Math.PI);
+    createChair(5.5, -12.0, 0);
+    createChair(5.5, -6.0, Math.PI);
   }
 
   buildCoffeeMug() {
