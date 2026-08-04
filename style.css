@@ -30,7 +30,7 @@
 html, body {
   width: 100%;
   height: 100%;
-  height: 100dvh; /* Dynamic Mobile Viewport Height */
+  height: 100dvh;
   overflow: hidden;
   background-color: var(--bg-dark);
   font-family: 'Inter', sans-serif;
@@ -69,131 +69,93 @@ html, body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: calc(8px + env(safe-area-inset-top)) 10px calc(12px + env(safe-area-inset-bottom)) 10px;
+  padding: calc(12px + env(safe-area-inset-top)) 20px calc(16px + env(safe-area-inset-bottom)) 20px;
 }
 
 .interactive {
   pointer-events: auto;
 }
 
-/* iOS 18 Mobile Header */
+/* 16:9 Widescreen Header Layout */
 .ios18-header {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
   width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
 }
 
-.header-row {
+.header-widescreen-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  gap: 16px;
 }
 
-.row-top {
-  margin-bottom: 2px;
-}
-
-.row-bottom {
-  gap: 6px;
-}
-
-/* Compact Brand Pill */
+/* Brand Pill */
 .brand-pill {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   background: var(--glass-bg);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--glass-border);
-  padding: 3px 8px;
+  padding: 6px 14px;
   border-radius: var(--squircle-md);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .brand-icon {
-  font-size: 0.85rem;
+  font-size: 1.1rem;
 }
 
 .brand-title {
   font-family: 'Outfit', sans-serif;
   font-weight: 800;
-  font-size: 0.75rem;
+  font-size: 0.95rem;
   letter-spacing: 0.5px;
   background: linear-gradient(135deg, #ffffff, #94a3b8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-/* System Action Icons */
-.icon-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.icon-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--squircle-sm);
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid var(--glass-border);
-  color: var(--text-main);
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.icon-btn:active {
-  transform: scale(0.92);
-}
-
-/* Target Distance Badge */
+/* Target Distance Badge (Center Header) */
 .target-badge {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   background: var(--glass-bg);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--glass-border);
-  padding: 3px 10px;
+  padding: 6px 16px;
   border-radius: var(--squircle-md);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .target-icon {
-  font-size: 0.8rem;
+  font-size: 1.05rem;
 }
 
 .target-val {
   font-family: 'Outfit', sans-serif;
-  font-size: 0.8rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: var(--text-main);
 }
 
 .target-sub {
   font-family: 'Outfit', sans-serif;
-  font-size: 0.65rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--accent-glow);
 }
 
-/* Score Badges */
-.score-actions {
+/* Right Group: Scores & Action Icons */
+.header-right-group {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 10px;
 }
 
 .score-pill {
@@ -201,22 +163,22 @@ html, body {
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--glass-border);
-  padding: 2px 8px;
+  padding: 4px 12px;
   border-radius: var(--squircle-sm);
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 40px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 52px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .score-pill.highlight {
   border-color: rgba(245, 158, 11, 0.4);
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.25);
 }
 
 .score-lbl {
-  font-size: 0.5rem;
+  font-size: 0.58rem;
   font-weight: 700;
   color: var(--text-sub);
   letter-spacing: 0.5px;
@@ -224,7 +186,7 @@ html, body {
 
 .score-num {
   font-family: 'Outfit', sans-serif;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
   font-weight: 900;
   color: var(--text-main);
   line-height: 1;
@@ -237,33 +199,65 @@ html, body {
 .streak-pill {
   display: none;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   background: linear-gradient(135deg, #f59e0b, #ef4444);
-  padding: 2px 7px;
-  border-radius: 10px;
+  padding: 4px 10px;
+  border-radius: 12px;
   font-family: 'Outfit', sans-serif;
   font-weight: 800;
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   color: white;
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
 }
 
-/* Mobile Energy / Power Meter */
-.energy-meter-hud {
-  position: absolute;
-  bottom: calc(75px + env(safe-area-inset-bottom));
-  right: 12px;
+.icon-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--squircle-sm);
   background: var(--glass-bg);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--glass-border);
-  padding: 6px 10px;
+  color: var(--text-main);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: var(--glass-border-light);
+}
+
+.icon-btn:active {
+  transform: scale(0.92);
+}
+
+/* Widescreen Energy / Power Meter (Bottom Right) */
+.energy-meter-hud {
+  position: absolute;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  right: 24px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  padding: 8px 14px;
   border-radius: var(--squircle-md);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  width: 125px;
+  gap: 4px;
+  width: 145px;
   opacity: 0;
   transform: translateY(10px) scale(0.95);
   transition: opacity 0.25s ease, transform 0.25s ease;
@@ -284,7 +278,7 @@ html, body {
 
 .meter-title {
   font-family: 'Outfit', sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   font-weight: 800;
   color: var(--text-sub);
   letter-spacing: 1px;
@@ -292,14 +286,14 @@ html, body {
 
 .meter-val {
   font-family: 'Outfit', sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: 900;
   color: var(--primary-glow);
 }
 
 .meter-track {
   width: 100%;
-  height: 7px;
+  height: 8px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
   overflow: hidden;
@@ -316,7 +310,7 @@ html, body {
 
 .meter-est {
   font-family: 'Outfit', sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.68rem;
   font-weight: 700;
   color: var(--accent-glow);
   text-align: right;
@@ -337,7 +331,7 @@ html, body {
 
 .popup-text {
   font-family: 'Outfit', sans-serif;
-  font-size: 2.4rem;
+  font-size: 3.2rem;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 2px;
@@ -377,7 +371,7 @@ html, body {
   100% { opacity: 0; transform: scale(0.9) translateY(-30px); }
 }
 
-/* Swipe Prompt Indicator */
+/* Swipe Prompt Indicator (Subtle at bottom) */
 #swipe-guide {
   position: absolute;
   bottom: calc(20px + env(safe-area-inset-bottom));
@@ -393,8 +387,8 @@ html, body {
 }
 
 .guide-arrow {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border-left: 2.5px solid var(--primary-glow);
   border-top: 2.5px solid var(--primary-glow);
   transform: rotate(45deg);
@@ -402,7 +396,7 @@ html, body {
 }
 
 .guide-text {
-  font-size: 0.6rem;
+  font-size: 0.68rem;
   font-weight: 700;
   color: var(--text-sub);
   letter-spacing: 1px;
@@ -448,18 +442,18 @@ html, body {
   background: rgba(18, 24, 38, 0.92);
   border: 1px solid var(--glass-border);
   border-radius: 20px;
-  padding: 20px;
-  max-width: 400px;
+  padding: 24px;
+  max-width: 440px;
   width: 90%;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .modal-title {
   font-family: 'Outfit', sans-serif;
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   font-weight: 800;
   color: var(--text-main);
   display: flex;
@@ -478,20 +472,20 @@ html, body {
 .instruction-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .instruction-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 0.8rem;
+  gap: 12px;
+  font-size: 0.85rem;
   color: var(--text-sub);
 }
 
 .instruction-num {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   background: var(--primary);
   border-radius: 50%;
   display: flex;
@@ -499,7 +493,7 @@ html, body {
   justify-content: center;
   font-weight: 700;
   color: white;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   flex-shrink: 0;
 }
 
@@ -507,34 +501,48 @@ html, body {
   background: linear-gradient(135deg, var(--primary), #2563eb);
   color: white;
   border: none;
-  padding: 10px;
+  padding: 12px;
   border-radius: var(--squircle-md);
   font-family: 'Outfit', sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
 }
 
-/* Small Screen Phones (Width <= 380px) */
-@media (max-width: 380px) {
+/* Mobile Screen Fallback Adjustments */
+@media (max-width: 680px) {
+  #ui-overlay {
+    padding: calc(8px + env(safe-area-inset-top)) 10px calc(12px + env(safe-area-inset-bottom)) 10px;
+  }
+  .header-widescreen-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .target-badge {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
   .brand-title {
-    font-size: 0.68rem;
-  }
-  .target-val {
-    font-size: 0.72rem;
-  }
-  .score-num {
     font-size: 0.8rem;
   }
+  .target-val {
+    font-size: 0.82rem;
+  }
+  .score-num {
+    font-size: 0.9rem;
+  }
   .icon-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 0.75rem;
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
   }
   .energy-meter-hud {
-    width: 110px;
-    padding: 5px 8px;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    right: 12px;
+    width: 120px;
+    padding: 6px 10px;
   }
 }

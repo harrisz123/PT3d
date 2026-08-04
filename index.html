@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Paper Toss 3D - Mobile Edition</title>
-  <meta name="description" content="Play Paper Toss 3D online! Responsive mobile game with energy meter, haptic feedback, and dynamic bin placement.">
+  <title>Paper Toss 3D - 16:9 Widescreen Edition</title>
+  <meta name="description" content="Play Paper Toss 3D online! Optimized for 16:9 1080p widescreen displays with dynamic target placement and live energy meter.">
   
   <!-- CSS Design System -->
   <link rel="stylesheet" href="style.css">
@@ -20,31 +20,24 @@
   <!-- UI Overlay Layer -->
   <div id="ui-overlay">
     
-    <!-- Responsive Mobile Header -->
+    <!-- 16:9 Widescreen Header -->
     <header class="ios18-header">
-      <!-- Row 1: Brand & System Action Icons -->
-      <div class="header-row row-top">
-        <div class="brand-pill interactive">
+      <div class="header-widescreen-bar interactive">
+        <!-- Brand Pill -->
+        <div class="brand-pill">
           <span class="brand-icon">🗑️</span>
-          <span class="brand-title">PAPER TOSS</span>
+          <span class="brand-title">PAPER TOSS 3D</span>
         </div>
 
-        <div class="icon-actions interactive">
-          <button id="audio-btn" class="icon-btn" title="Toggle Audio">🔊</button>
-          <button id="reset-btn" class="icon-btn" title="Reset Game">🔄</button>
-          <button id="help-btn" class="icon-btn" title="How to Play">❓</button>
-        </div>
-      </div>
-
-      <!-- Row 2: Target Distance & Score Badges -->
-      <div class="header-row row-bottom">
-        <div class="target-badge interactive">
+        <!-- Target Distance & Location Badge -->
+        <div class="target-badge">
           <span class="target-icon">🎯</span>
           <span id="target-distance-val" class="target-val">5.0m</span>
           <span id="target-offset-val" class="target-sub">ON FLOOR</span>
         </div>
 
-        <div class="score-actions interactive">
+        <!-- Scores & System Action Controls -->
+        <div class="header-right-group">
           <div id="streak-badge" class="streak-pill">
             <span>🔥</span>
             <span id="streak-count">0</span>
@@ -59,11 +52,17 @@
             <span class="score-lbl">BEST</span>
             <span id="highscore-val" class="score-num">0</span>
           </div>
+
+          <div class="icon-actions">
+            <button id="audio-btn" class="icon-btn" title="Toggle Audio">🔊</button>
+            <button id="reset-btn" class="icon-btn" title="Reset Game">🔄</button>
+            <button id="help-btn" class="icon-btn" title="How to Play">❓</button>
+          </div>
         </div>
       </div>
     </header>
 
-    <!-- Dynamic Touch Flick Energy / Power Meter -->
+    <!-- Dynamic Touch Flick Energy / Power Meter (Bottom Right) -->
     <div id="energy-meter" class="energy-meter-hud">
       <div class="meter-label">
         <span class="meter-title">PWR</span>
