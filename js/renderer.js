@@ -25,6 +25,28 @@ class GameRenderer {
     // Active Surface & State
     this.currentSurfaceY = -1.45;
 
+    // Camera Yaw-Follow: pans horizontally toward the current bin target so
+    // off-center placements (table/chair) are actually visible on narrow
+    // smartphone screens, where the effective horizontal FOV is small.
+    this.baseLook = { y: -0.25, z: -4.5 };
+    this.yawTargetX = 0;
+    this.currentYawX = 0;
+
+    // Player-Adjustable Camera Offset: added on top of the auto-follow so
+    // the player can nudge the view left/right/up/down to whatever angle
+    // feels comfortable, via a two-finger drag (see TouchControls).
+    this.yawOffset = 0;
+    this.pitchOffset = 0;
+    this.maxYawOffset = 0.85;   // ~49 degrees either side
+    this.maxPitchOffset = 0.35; // ~20 degrees up/down
+
+    // Table-Placement Visibility Boost: the bin is scaled up and gently
+    // pulses when it's sitting on a table, since that placement is farther
+    // from the camera and otherwise easy to miss.
+    this.currentSurfaceType = 'floor';
+    this.elapsedTime = 0;
+    this.binTableScale = 1.35;
+
     // Materials & Textures
     this.paperMaterial = null;
     this.notebookTexture = null;
@@ -44,12 +66,19 @@ class GameRenderer {
     this.updateCameraForAspect(aspect);
 
     // 3. WebGL Renderer with High-DPI support
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false,
+      powerPreference: 'high-performance',
+      logarithmicDepthBuffer: true // reduces z-fighting/shimmer across the room's depth range for a crisper image
+    });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputEncoding = THREE.sRGBEncoding;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.08;
 
     this.container.appendChild(this.renderer.domElement);
 
@@ -73,74 +102,141 @@ class GameRenderer {
   }
 
   generateRealisticNotebookTexture() {
+    const size = 1536;
     const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 1024;
+    canvas.width = size;
+    canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = '#fcfdfe';
-    ctx.fillRect(0, 0, 1024, 1024);
+    // Warm off-white paper base (reads as "paper", not plain white plastic)
+    ctx.fillStyle = '#f8f6ef';
+    ctx.fillRect(0, 0, size, size);
 
-    const imgData = ctx.getImageData(0, 0, 1024, 1024);
+    // Fine paper-fiber grain
+    const imgData = ctx.getImageData(0, 0, size, size);
     const data = imgData.data;
     for (let i = 0; i < data.length; i += 4) {
-      const grain = (Math.random() - 0.5) * 14;
+      const grain = (Math.random() - 0.5) * 10;
       data[i] = Math.min(255, Math.max(0, data[i] + grain));
-      data[i+1] = Math.min(255, Math.max(0, data[i+1] + grain));
-      data[i+2] = Math.min(255, Math.max(0, data[i+2] + grain));
+      data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + grain));
+      data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + grain));
     }
     ctx.putImageData(imgData, 0, 0);
 
-    ctx.strokeStyle = 'rgba(96, 165, 250, 0.45)';
-    ctx.lineWidth = 3;
-    for (let y = 64; y < 1024; y += 64) {
+    // Soft vignette so folds read as physically shadowed rather than flat
+    const vignette = ctx.createRadialGradient(size / 2, size / 2, size * 0.25, size / 2, size / 2, size * 0.72);
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, 'rgba(30,30,35,0.14)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, size, size);
+
+    // Crisp ruled lines (thinner, higher-contrast at this resolution)
+    ctx.strokeStyle = 'rgba(96, 165, 250, 0.4)';
+    ctx.lineWidth = 2.5;
+    for (let y = 96; y < size; y += 96) {
       ctx.beginPath();
       ctx.moveTo(0, y);
-      ctx.lineTo(1024, y);
+      ctx.lineTo(size, y);
       ctx.stroke();
     }
 
-    ctx.strokeStyle = 'rgba(239, 68, 68, 0.55)';
+    // Margin rule
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(128, 0);
-    ctx.lineTo(128, 1024);
+    ctx.moveTo(192, 0);
+    ctx.lineTo(192, size);
     ctx.stroke();
 
-    ctx.fillStyle = 'rgba(51, 65, 85, 0.7)';
-    ctx.font = 'bold 36px sans-serif';
-    ctx.fillText('PAPER TOSS 3D', 180, 180);
-    ctx.fillText('E = mc²', 180, 310);
+    // Branding, crisper weight/spacing at higher canvas resolution
+    ctx.fillStyle = 'rgba(30, 41, 59, 0.65)';
+    ctx.font = '800 46px "Outfit", sans-serif';
+    ctx.fillText('PAPER TOSS 3D', 260, 250);
+    ctx.font = '500 34px "Outfit", sans-serif';
+    ctx.fillStyle = 'rgba(30, 41, 59, 0.45)';
+    ctx.fillText('E = mc²', 260, 320);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
+    texture.anisotropy = 4;
     return texture;
   }
 
   updateCameraForAspect(aspect) {
+    // Keep the camera's aspect ratio in sync with the actual viewport,
+    // otherwise the scene stretches/squishes on resize, rotation, or
+    // when the mobile browser UI (address bar) shows/hides.
+    this.camera.aspect = aspect;
+
+    // Camera sits behind the paper ball (ball is at z ≈ -0.75) and in
+    // front of the bin (bin is further out along -Z), giving a natural
+    // over-the-shoulder throwing view by default. Pulled back further than
+    // a tight first-person crop so more of the room (and the bin, wherever
+    // it lands) stays comfortably in frame.
     if (aspect < 0.55) {
       // Modern Smartphone Portrait (e.g. 360x760pt, iPhone 12-16)
       this.camera.fov = 54;
-      this.camera.position.set(0, 0.35, 1.45);
-      this.camera.lookAt(0, -0.25, -4.5);
+      this.camera.position.set(0, 0.4, 1.9);
+      this.baseLook = { y: -0.25, z: -4.5 };
     } else if (aspect < 0.8) {
       // Standard Portrait
       this.camera.fov = 52;
-      this.camera.position.set(0, 0.3, 1.35);
-      this.camera.lookAt(0, -0.3, -4.5);
+      this.camera.position.set(0, 0.35, 1.75);
+      this.baseLook = { y: -0.3, z: -4.5 };
     } else if (aspect >= 1.5) {
       // Widescreen Landscape
       this.camera.fov = 46;
-      this.camera.position.set(0, 0.2, 1.0);
-      this.camera.lookAt(0, -0.35, -5.0);
+      this.camera.position.set(0, 0.24, 1.3);
+      this.baseLook = { y: -0.35, z: -5.0 };
     } else {
       this.camera.fov = 48;
-      this.camera.position.set(0, 0.22, 1.1);
-      this.camera.lookAt(0, -0.3, -4.5);
+      this.camera.position.set(0, 0.26, 1.45);
+      this.baseLook = { y: -0.3, z: -4.5 };
     }
 
+    this.applyCameraLook();
     this.camera.updateProjectionMatrix();
+  }
+
+  /**
+   * Recomputes and applies the camera's look-at target from three inputs:
+   *  1. baseLook            - the neutral y/z framing for the current aspect bracket
+   *  2. currentYawX          - smoothed auto-follow toward the current bin's X position
+   *  3. yawOffset/pitchOffset - the player's own manual adjustment (touch-drag)
+   */
+  applyCameraLook() {
+    const distance = Math.abs(this.baseLook.z - this.camera.position.z);
+    const lookX = this.currentYawX + Math.tan(this.yawOffset) * distance;
+    const lookY = this.baseLook.y + Math.tan(this.pitchOffset) * distance;
+    this.camera.lookAt(lookX, lookY, this.baseLook.z);
+  }
+
+  /**
+   * Smoothly pans the camera to look toward the given world X position.
+   * Called whenever the trash bin relocates (floor/table/chair) so that
+   * off-center targets stay visible instead of falling outside the
+   * camera's narrow horizontal FOV on portrait smartphone screens.
+   */
+  setBinFollowX(x) {
+    this.yawTargetX = Math.max(-4.5, Math.min(4.5, x));
+  }
+
+  /**
+   * Lets the player nudge the camera view to whatever angle is comfortable
+   * for them, on top of the automatic bin-follow. Called from TouchControls
+   * on a two-finger drag. Deltas are in radians; result is clamped so the
+   * player can't spin the camera away from the action entirely.
+   */
+  adjustCameraOffset(deltaYaw, deltaPitch) {
+    this.yawOffset = Math.max(-this.maxYawOffset, Math.min(this.maxYawOffset, this.yawOffset + deltaYaw));
+    this.pitchOffset = Math.max(-this.maxPitchOffset, Math.min(this.maxPitchOffset, this.pitchOffset + deltaPitch));
+  }
+
+  /** Resets any manual camera adjustment back to the default comfortable view. */
+  resetCameraOffset() {
+    this.yawOffset = 0;
+    this.pitchOffset = 0;
   }
 
   setupLighting() {
@@ -262,7 +358,10 @@ class GameRenderer {
       tableGroup.add(leg);
     });
 
-    tableGroup.position.set(5.8, -1.5, -8.5);
+    // Aligned with the "ON TABLE" bin target coordinates used in game.js
+    // (targetX 4.5, targetZ 6.5) so the visible table actually sits under
+    // the bin instead of floating in an unrelated part of the room.
+    tableGroup.position.set(4.5, -1.5, -6.5);
     this.officeEnvGroup.add(tableGroup);
   }
 
@@ -297,8 +396,11 @@ class GameRenderer {
       this.officeEnvGroup.add(chair);
     };
 
-    createChair(5.8, -11.5, 0);
-    createChair(5.8, -5.5, Math.PI);
+    // Aligned with the "ON CHAIR" bin target coordinates used in game.js
+    // (targetX 4.5, targetZ 9.0 or 4.0) so a chair is actually visible
+    // under the bin instead of sitting in an unrelated part of the room.
+    createChair(4.5, -9.0, 0);
+    createChair(4.5, -4.0, Math.PI);
   }
 
   buildCoffeeMug() {
@@ -558,27 +660,35 @@ class GameRenderer {
    * REALISTIC COMPACT PAPER BALL (0.05 RADIUS)
    * ---------------------------------------------------- */
   buildRealisticCompactPaperBall() {
-    const baseGeo = new THREE.IcosahedronGeometry(0.05, 3);
+    const baseGeo = new THREE.IcosahedronGeometry(0.05, 4);
     const posAttr = baseGeo.attributes.position;
     const vertex = new THREE.Vector3();
 
+    // Layered noise: broad primary folds (how the paper was actually
+    // crumpled) plus fine secondary creases on top, for a more convincingly
+    // hand-crushed silhouette instead of a uniformly bumpy sphere.
     for (let i = 0; i < posAttr.count; i++) {
       vertex.fromBufferAttribute(posAttr, i);
-      const foldNoise = (Math.sin(vertex.x * 35) * Math.cos(vertex.z * 35) + Math.sin(vertex.y * 35)) * 0.011;
-      const crinkleNoise = (Math.sin(vertex.x * 80 + vertex.y * 80) + Math.cos(vertex.z * 80)) * 0.006;
-      const totalDisplacement = foldNoise + crinkleNoise;
+      const primaryFold = (Math.sin(vertex.x * 18) * Math.cos(vertex.z * 16) + Math.sin(vertex.y * 20)) * 0.016;
+      const secondaryFold = (Math.sin(vertex.x * 42 + vertex.y * 30) * Math.cos(vertex.z * 38)) * 0.008;
+      const fineCrinkle = (Math.sin(vertex.x * 95 + vertex.y * 95) + Math.cos(vertex.z * 90)) * 0.0035;
+      const totalDisplacement = primaryFold + secondaryFold + fineCrinkle;
       vertex.addScaledVector(vertex.clone().normalize(), totalDisplacement);
       posAttr.setXYZ(i, vertex.x, vertex.y, vertex.z);
     }
     baseGeo.computeVertexNormals();
 
-    this.paperMaterial = new THREE.MeshStandardMaterial({
+    // Physical material with a faint clearcoat sheen catches the room
+    // lighting along fold edges, giving the paper a crisper, less flat look.
+    this.paperMaterial = new THREE.MeshPhysicalMaterial({
       map: this.notebookTexture,
       bumpMap: this.notebookTexture,
-      bumpScale: 0.05,
-      roughness: 0.96,
-      metalness: 0.01,
-      color: 0xffffff
+      bumpScale: 0.045,
+      roughness: 0.88,
+      metalness: 0.0,
+      clearcoat: 0.15,
+      clearcoatRoughness: 0.65,
+      color: 0xfdfbf5
     });
 
     this.paperBallMesh = new THREE.Mesh(baseGeo, this.paperMaterial);
@@ -612,12 +722,30 @@ class GameRenderer {
     this.scene.add(this.ballShadowMesh);
   }
 
-  updateTrashBinPosition(targetX, targetZ, surfaceY = -1.45, environmentTheme = 'office') {
+  updateTrashBinPosition(targetX, targetZ, surfaceY = -1.45, environmentTheme = 'office', surfaceType = 'floor') {
     this.currentSurfaceY = surfaceY;
+    this.currentSurfaceType = surfaceType;
     this.trashBinGroup.position.set(targetX, surfaceY, -targetZ);
+    this.setBinFollowX(targetX);
   }
 
   update(physicsEngine, dt) {
+    this.elapsedTime += dt;
+
+    // 0. Smoothly pan the camera toward the current bin target, then layer
+    // the player's manual touch-adjustment on top.
+    this.currentYawX += (this.yawTargetX - this.currentYawX) * Math.min(1, dt * 3.5);
+    this.applyCameraLook();
+
+    // 0.5 Bin visibility: scale up and gently pulse when it's on a table,
+    // since that placement sits farther from camera and is easy to miss.
+    const targetBinScale = this.currentSurfaceType === 'table'
+      ? this.binTableScale + Math.sin(this.elapsedTime * 3.2) * 0.045
+      : 1.0;
+    const currentScale = this.trashBinGroup.scale.x;
+    const nextScale = currentScale + (targetBinScale - currentScale) * Math.min(1, dt * 6);
+    this.trashBinGroup.scale.setScalar(nextScale);
+
     // 1. Update Paper Ball Mesh Position & Rotation
     this.paperBallMesh.position.set(
       physicsEngine.position.x,
@@ -698,9 +826,14 @@ class GameRenderer {
   }
 
   onWindowResize() {
-    const aspect = window.innerWidth / window.innerHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    if (width === 0 || height === 0) return;
+
+    const aspect = width / height;
     this.updateCameraForAspect(aspect);
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(width, height);
   }
 }
 

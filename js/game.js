@@ -158,7 +158,7 @@ class PaperTossGame {
     this.currentSurfaceType = surfaceType;
 
     this.physics.setBinPosition(this.currentBinX, this.currentBinZ, surfaceY, surfaceType);
-    this.renderer.updateTrashBinPosition(this.currentBinX, this.currentBinZ, surfaceY, 'office');
+    this.renderer.updateTrashBinPosition(this.currentBinX, this.currentBinZ, surfaceY, 'office', surfaceType);
 
     this.updateTargetUI();
   }

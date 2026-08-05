@@ -15,6 +15,11 @@ class TouchControls {
     this.enabled = true;
     this.hideTimeout = null;
 
+    // Two-Finger Camera Orbit State
+    this.isOrbiting = false;
+    this.orbitLast = { x: 0, y: 0 };
+    this.orbitSensitivity = 0.0032; // radians per pixel dragged
+
     // Smoothed Impulse for smooth rendering
     this.smoothImpulse = { x: 0, y: 0, z: 0 };
     this.smoothPowerPercent = 0;
@@ -36,22 +41,57 @@ class TouchControls {
 
     // Touch Events
     this.container.addEventListener('touchstart', (e) => {
-      if (e.touches.length > 0) {
+      if (e.touches.length >= 2) {
+        // Two fingers = camera orbit. Cancel any single-finger flick drag
+        // in progress so lifting fingers afterward doesn't launch a throw.
+        this.isDragging = false;
+        this.isOrbiting = true;
+        this.orbitLast = this.getTouchMidpoint(e.touches);
+        this.hideEnergyMeter(0);
+        if (window.gameInstance && window.gameInstance.renderer) {
+          window.gameInstance.renderer.hideTrajectoryArrow();
+        }
+      } else if (e.touches.length === 1 && !this.isOrbiting) {
         this.handleStart(e.touches[0].clientX, e.touches[0].clientY);
       }
     }, { passive: true });
 
     window.addEventListener('touchmove', (e) => {
+      if (this.isOrbiting && e.touches.length >= 2) {
+        const mid = this.getTouchMidpoint(e.touches);
+        const dx = mid.x - this.orbitLast.x;
+        const dy = mid.y - this.orbitLast.y;
+        this.orbitLast = mid;
+
+        if (window.gameInstance && window.gameInstance.renderer) {
+          window.gameInstance.renderer.adjustCameraOffset(
+            -dx * this.orbitSensitivity,
+            dy * this.orbitSensitivity
+          );
+        }
+        return;
+      }
       if (e.touches.length > 0 && this.isDragging) {
         this.handleMove(e.touches[0].clientX, e.touches[0].clientY);
       }
     }, { passive: true });
 
     window.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        this.isOrbiting = false;
+      }
+      if (this.isOrbiting) return;
       if (e.changedTouches.length > 0) {
         this.handleEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
       }
     }, { passive: true });
+  }
+
+  getTouchMidpoint(touches) {
+    return {
+      x: (touches[0].clientX + touches[1].clientX) / 2,
+      y: (touches[0].clientY + touches[1].clientY) / 2
+    };
   }
 
   handleStart(x, y) {

@@ -167,13 +167,20 @@ class PhysicsEngine {
     }
 
     // 3. SURFACE / FLOOR COLLISION
+    // Derived from the live bin target (rather than separate hardcoded
+    // coordinates) so the ball's resting surface always matches wherever
+    // the table/chair/floor target actually is — no risk of the two
+    // drifting out of sync again.
     let collisionY = -1.45 + this.ballRadius;
 
-    if (Math.abs(this.position.x - 5.8) < 1.8 && Math.abs(this.position.z - (-8.5)) < 2.0) {
-      collisionY = -0.5 + this.ballRadius; // Table top surface height
-    } else if (Math.abs(this.position.x - 5.8) < 1.0 && 
-               (Math.abs(this.position.z - (-11.5)) < 1.0 || Math.abs(this.position.z - (-5.5)) < 1.0)) {
-      collisionY = -1.0 + this.ballRadius; // Chair seat height
+    if (this.binTarget.surfaceType === 'table' &&
+        Math.abs(this.position.x - this.binTarget.x) < 1.8 &&
+        Math.abs(this.position.z - this.binTarget.z) < 2.0) {
+      collisionY = this.binTarget.surfaceY + this.ballRadius; // Table top surface height
+    } else if (this.binTarget.surfaceType === 'chair' &&
+               Math.abs(this.position.x - this.binTarget.x) < 1.0 &&
+               Math.abs(this.position.z - this.binTarget.z) < 1.0) {
+      collisionY = this.binTarget.surfaceY + this.ballRadius; // Chair seat height
     }
 
     if (this.position.y <= collisionY) {
