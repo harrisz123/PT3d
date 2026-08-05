@@ -4,577 +4,781 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Paper Toss 3D</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    *{margin:0;padding:0;box-sizing:border-box;}
-    html,body{
-      width:100%;height:100%;
+    :root {
+      --safe-top: env(safe-area-inset-top, 12px);
+      --safe-bot: env(safe-area-inset-bottom, 20px);
+      --glass-bg: rgba(18, 18, 28, 0.65);
+      --glass-border: rgba(255,255,255,0.10);
+      --glass-blur: blur(20px) saturate(180%);
+      --accent: #0a84ff;
+      --accent2: #30d158;
+      --amber: #ff9f0a;
+      --red: #ff453a;
+      --pill-r: 20px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+    html, body {
+      width:100%; height:100%;
       overflow:hidden;
-      background:#0f172a;
-      font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;
+      background:#060610;
+      font-family:'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
       touch-action:none;
+      -webkit-user-select:none; user-select:none;
     }
-    #canvas-container{
-      position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;
+
+    /* ── Canvas ── */
+    #c { position:fixed; inset:0; z-index:0; }
+    #c canvas { width:100%!important; height:100%!important; display:block; }
+
+    /* ── Ambient vignette ── */
+    #vignette {
+      position:fixed; inset:0; z-index:1; pointer-events:none;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(6,6,16,0.7) 100%);
     }
-    #canvas-container canvas{display:block;width:100%!important;height:100%!important;}
-    #ui{
-      position:fixed;top:0;left:0;width:100%;height:100%;z-index:10;
+
+    /* ── UI Layer ── */
+    #ui { position:fixed; inset:0; z-index:10; pointer-events:none; }
+
+    /* ── Header ── */
+    #header {
+      position:absolute; top:0; left:0; right:0;
+      display:flex; justify-content:space-between; align-items:flex-start;
+      padding: max(var(--safe-top), 14px) 16px 0;
+      gap:10px;
+    }
+
+    .glass-pill {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--pill-r);
+    }
+
+    .brand {
+      display:flex; align-items:center; gap:8px;
+      padding:8px 16px; pointer-events:all;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    .brand-icon { font-size:16px; }
+    .brand-title {
+      font-size:13px; font-weight:800; letter-spacing:0.4px;
+      background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    }
+
+    .hud-right { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+
+    .icon-row { display:flex; gap:6px; pointer-events:all; }
+    .icon-btn {
+      width:36px; height:36px; border-radius:11px; border:none; cursor:pointer;
+      font-size:15px; display:flex; align-items:center; justify-content:center;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+      color:#f1f5f9; transition: transform 0.1s, opacity 0.1s;
+    }
+    .icon-btn:active { transform:scale(0.9); opacity:0.7; }
+
+    .score-row { display:flex; gap:6px; }
+    .score-pill {
+      display:flex; flex-direction:column; align-items:center;
+      padding:5px 14px; min-width:52px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    .score-lbl { font-size:8px; font-weight:700; color:#64748b; letter-spacing:0.8px; text-transform:uppercase; }
+    .score-num { font-size:20px; font-weight:900; color:#f1f5f9; line-height:1.1; }
+    .score-pill.hi .score-num { color: var(--amber); }
+
+    /* ── Target badge ── */
+    #target {
+      position:absolute; top:0; left:0; right:0;
+      display:flex; justify-content:center;
+      padding-top: calc(max(var(--safe-top), 14px) + 52px);
       pointer-events:none;
     }
-    /* Header */
-    #header{
-      position:absolute;top:0;left:0;right:0;
-      display:flex;justify-content:space-between;align-items:flex-start;
-      padding:env(safe-area-inset-top,12px) 14px 0;
-      padding-top:max(env(safe-area-inset-top),12px);
+    .target-badge {
+      display:flex; align-items:center; gap:8px;
+      padding:6px 16px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.4);
     }
-    .brand{
-      display:flex;align-items:center;gap:6px;
-      background:rgba(15,23,42,0.75);
-      backdrop-filter:blur(12px);
-      border:1px solid rgba(255,255,255,0.12);
-      border-radius:20px;padding:7px 14px;
-      pointer-events:all;
+    .target-dist { font-size:14px; font-weight:800; color:#f1f5f9; }
+    .target-surf {
+      font-size:11px; font-weight:700; letter-spacing:0.3px;
+      color: var(--amber); padding:2px 8px;
+      background: rgba(255,159,10,0.15); border-radius:8px;
     }
-    .brand-title{font-size:13px;font-weight:700;color:#f8fafc;letter-spacing:0.5px;}
-    .hud-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
-    .icon-row{
-      display:flex;gap:6px;pointer-events:all;
+
+    /* ── Energy Meter ── */
+    #meter {
+      position:absolute;
+      left:16px;
+      bottom: calc(max(var(--safe-bot), 20px) + 80px);
+      width:72px; padding:10px 12px; gap:6px;
+      display:none; flex-direction:column;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+      opacity:0; transition:opacity 0.15s;
     }
-    .icon-btn{
-      width:36px;height:36px;border-radius:10px;border:none;
-      background:rgba(15,23,42,0.75);backdrop-filter:blur(12px);
-      border:1px solid rgba(255,255,255,0.12);
-      color:#f8fafc;font-size:15px;cursor:pointer;
-      display:flex;align-items:center;justify-content:center;
+    #meter.show { display:flex; opacity:1; }
+    .meter-header { display:flex; justify-content:space-between; align-items:center; }
+    .meter-lbl { font-size:8px; font-weight:700; color:#64748b; letter-spacing:0.8px; }
+    .meter-pct { font-size:10px; font-weight:800; color:#f1f5f9; }
+    .meter-track {
+      width:100%; height:5px;
+      background:rgba(255,255,255,0.08); border-radius:3px; overflow:hidden;
     }
-    .score-row{
-      display:flex;gap:6px;pointer-events:none;
+    .meter-bar {
+      height:100%; width:0%;
+      background:linear-gradient(90deg, var(--accent), #5e5ce6);
+      border-radius:3px; transition:width 0.05s linear, background 0.2s;
     }
-    .score-pill{
-      display:flex;flex-direction:column;align-items:center;
-      background:rgba(15,23,42,0.75);backdrop-filter:blur(12px);
-      border:1px solid rgba(255,255,255,0.12);border-radius:10px;
-      padding:4px 12px;min-width:48px;
+    .meter-est { font-size:9px; color:#64748b; text-align:center; }
+
+    /* ── Streak ── */
+    #streak {
+      position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
+      display:none; align-items:center; gap:5px;
+      padding:6px 16px;
+      box-shadow: 0 0 24px rgba(255,159,10,0.3);
+      border-color: rgba(255,159,10,0.3)!important;
     }
-    .score-lbl{font-size:9px;font-weight:600;color:#94a3b8;letter-spacing:0.5px;}
-    .score-num{font-size:18px;font-weight:800;color:#f8fafc;}
-    .score-pill.hi .score-num{color:#f59e0b;}
-    /* Target badge */
-    #target{
-      position:absolute;top:0;left:0;right:0;
-      display:flex;justify-content:center;
-      padding-top:max(env(safe-area-inset-top),12px);
-      margin-top:52px;
-      pointer-events:none;
+    #streak.show { display:flex; animation:streakPop 0.3s ease-out; }
+    .streak-fire { font-size:16px; }
+    .streak-num { font-size:16px; font-weight:900; color:var(--amber); }
+    @keyframes streakPop {
+      0% { transform:translate(-50%,-50%) scale(0.5); opacity:0; }
+      70% { transform:translate(-50%,-50%) scale(1.1); }
+      100% { transform:translate(-50%,-50%) scale(1); opacity:1; }
     }
-    .target-badge{
-      display:flex;align-items:center;gap:6px;
-      background:rgba(15,23,42,0.75);backdrop-filter:blur(12px);
-      border:1px solid rgba(255,255,255,0.12);border-radius:20px;
-      padding:5px 12px;
+
+    /* ── Popup ── */
+    #popup {
+      position:absolute; top:35%; left:0; right:0;
+      display:flex; justify-content:center; pointer-events:none;
     }
-    .target-val{font-size:13px;font-weight:700;color:#f8fafc;}
-    .target-sub{font-size:11px;font-weight:600;color:#f59e0b;}
-    /* Energy Meter */
-    #energy{
-      position:absolute;left:14px;
-      bottom:max(env(safe-area-inset-bottom),20px);
-      margin-bottom:90px;
-      display:none;flex-direction:column;gap:4px;
-      background:rgba(15,23,42,0.8);backdrop-filter:blur(12px);
-      border:1px solid rgba(255,255,255,0.12);border-radius:12px;
-      padding:8px 12px;min-width:80px;pointer-events:none;
+    .pop {
+      font-size:28px; font-weight:900; letter-spacing:-0.5px;
+      animation:popIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      text-shadow:none; padding:4px 0;
     }
-    #energy.show{display:flex;}
-    .meter-lbl{font-size:9px;font-weight:700;color:#94a3b8;display:flex;justify-content:space-between;}
-    .meter-track{width:100%;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;}
-    .meter-fill{height:100%;width:0%;background:linear-gradient(90deg,#38bdf8,#3b82f6);border-radius:3px;transition:width 0.05s linear;}
-    .meter-est{font-size:9px;color:#94a3b8;text-align:center;}
-    /* Streak */
-    #streak{
-      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-      display:none;align-items:center;gap:4px;
-      background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);
-      border-radius:20px;padding:5px 14px;pointer-events:none;
+    .pop.swish { color:var(--accent2); filter:drop-shadow(0 0 16px rgba(48,209,88,0.6)); }
+    .pop.rim   { color:var(--amber);   filter:drop-shadow(0 0 16px rgba(255,159,10,0.5)); }
+    .pop.miss  { color:var(--red);     filter:drop-shadow(0 0 12px rgba(255,69,58,0.4)); }
+    @keyframes popIn {
+      0% { opacity:0; transform:scale(0.4) translateY(16px); }
+      100% { opacity:1; transform:scale(1) translateY(0); }
     }
-    #streak.show{display:flex;}
-    .streak-text{font-size:13px;font-weight:700;color:#f59e0b;}
-    /* Popup */
-    #popup{
-      position:absolute;top:38%;left:0;right:0;
-      display:flex;justify-content:center;pointer-events:none;
+
+    /* ── Swipe Guide ── */
+    #guide {
+      position:absolute;
+      bottom: calc(max(var(--safe-bot), 20px) + 8px);
+      left:0; right:0;
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      transition:opacity 0.6s; pointer-events:none;
     }
-    .pop{
-      font-size:26px;font-weight:900;letter-spacing:-0.5px;
-      animation:popIn 0.2s ease-out;padding:6px 20px;border-radius:16px;
+    #guide.hidden { opacity:0; }
+    .guide-chevron {
+      width:22px; height:22px;
+      border-left:2.5px solid rgba(255,255,255,0.25);
+      border-top:2.5px solid rgba(255,255,255,0.25);
+      transform:rotate(45deg); margin-bottom:-4px;
+      animation:chevron 1.4s ease-in-out infinite;
     }
-    .pop.swish{color:#10b981;text-shadow:0 0 20px rgba(16,185,129,0.6);}
-    .pop.rim{color:#f59e0b;text-shadow:0 0 20px rgba(245,158,11,0.6);}
-    .pop.miss{color:#ef4444;text-shadow:0 0 20px rgba(239,68,68,0.4);}
-    @keyframes popIn{from{opacity:0;transform:scale(0.5) translateY(12px);}to{opacity:1;transform:scale(1) translateY(0);}}
-    /* Swipe guide */
-    #guide{
-      position:absolute;bottom:max(env(safe-area-inset-bottom),20px);
-      left:0;right:0;
-      display:flex;flex-direction:column;align-items:center;gap:6px;
-      transition:opacity 0.5s;pointer-events:none;
+    .guide-chevron:nth-child(2) { animation-delay:0.2s; opacity:0.5; }
+    .guide-txt {
+      font-size:10px; font-weight:700; letter-spacing:1.5px;
+      color:rgba(255,255,255,0.3); text-transform:uppercase;
     }
-    .guide-arrow{
-      width:0;height:0;
-      border-left:8px solid transparent;border-right:8px solid transparent;
-      border-bottom:14px solid rgba(255,255,255,0.3);
-      animation:bounce 1.2s ease-in-out infinite;
+    @keyframes chevron {
+      0%,100% { transform:rotate(45deg) translate(0,0); opacity:0.3; }
+      50% { transform:rotate(45deg) translate(-4px,-4px); opacity:0.8; }
     }
-    .guide-text{font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);letter-spacing:1px;}
-    @keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+
+    /* ── Confetti canvas ── */
+    #confetti { position:fixed; inset:0; z-index:9; pointer-events:none; }
   </style>
 </head>
 <body>
 
-<div id="canvas-container"></div>
+<div id="c"></div>
+<div id="vignette"></div>
+<canvas id="confetti"></canvas>
 
 <div id="ui">
+  <!-- Header -->
   <div id="header">
-    <div class="brand">
-      <span>🗑️</span>
+    <div class="glass-pill brand">
+      <span class="brand-icon">🗑️</span>
       <span class="brand-title">PAPER TOSS</span>
     </div>
     <div class="hud-right">
       <div class="icon-row">
         <button class="icon-btn" id="btn-audio">🔊</button>
-        <button class="icon-btn" id="btn-reset">🔄</button>
+        <button class="icon-btn" id="btn-reset">↺</button>
       </div>
       <div class="score-row">
-        <div class="score-pill">
-          <span class="score-lbl">SCORE</span>
-          <span class="score-num" id="score">0</span>
+        <div class="glass-pill score-pill">
+          <span class="score-lbl">Score</span>
+          <span class="score-num" id="ui-score">0</span>
         </div>
-        <div class="score-pill hi">
-          <span class="score-lbl">BEST</span>
-          <span class="score-num" id="best">0</span>
+        <div class="glass-pill score-pill hi">
+          <span class="score-lbl">Best</span>
+          <span class="score-num" id="ui-best">0</span>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Target badge -->
   <div id="target">
-    <div class="target-badge">
+    <div class="glass-pill target-badge">
       <span>🎯</span>
-      <span class="target-val" id="t-dist">5.0m</span>
-      <span class="target-sub" id="t-surf">ON FLOOR</span>
+      <span class="target-dist" id="ui-dist">5.0m</span>
+      <span class="target-surf" id="ui-surf">FLOOR</span>
     </div>
   </div>
 
-  <div id="streak">
-    <span>🔥</span>
-    <span class="streak-text" id="streak-count">2x</span>
+  <!-- Energy meter -->
+  <div class="glass-pill" id="meter">
+    <div class="meter-header">
+      <span class="meter-lbl">PWR</span>
+      <span class="meter-pct" id="ui-pct">0%</span>
+    </div>
+    <div class="meter-track"><div class="meter-bar" id="ui-bar"></div></div>
+    <div class="meter-est" id="ui-est">— m</div>
   </div>
 
-  <div id="energy">
-    <div class="meter-lbl"><span>PWR</span><span id="e-pct">0%</span></div>
-    <div class="meter-track"><div class="meter-fill" id="e-fill"></div></div>
-    <div class="meter-est" id="e-est">0.0m</div>
+  <!-- Streak -->
+  <div class="glass-pill" id="streak">
+    <span class="streak-fire">🔥</span>
+    <span class="streak-num" id="ui-streak">2×</span>
   </div>
 
+  <!-- Popup -->
   <div id="popup"></div>
 
+  <!-- Swipe guide -->
   <div id="guide">
-    <div class="guide-arrow"></div>
-    <span class="guide-text">SWIPE UP TO FLICK</span>
+    <div class="guide-chevron"></div>
+    <div class="guide-chevron"></div>
+    <span class="guide-txt">Swipe up to toss</span>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-(function() {
+(function () {
 'use strict';
 
-// ─── GLOBALS ─────────────────────────────────────────────────────────────────
-const W = () => window.innerWidth;
-const H = () => window.innerHeight;
+// ═══════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════
+const FLOOR_Y       = -1.5;
+const CORRIDOR_W    = 3.4;   // hallway width - fits portrait perfectly
+const CORRIDOR_HALF = CORRIDOR_W / 2;
+const BIN_RIM_R     = 0.32;  // basket radius
+const BIN_HEIGHT    = 0.72;  // basket total height
+const BALL_R        = 0.075;
 
-// ─── SCENE / RENDERER ────────────────────────────────────────────────────────
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x1a1a2e);
+// ═══════════════════════════════════════════════════════════════════════════
+// THREE.JS SETUP
+// ═══════════════════════════════════════════════════════════════════════════
+const scene    = new THREE.Scene();
+scene.background = new THREE.Color(0x060610);
+scene.fog        = new THREE.Fog(0x060610, 22, 38);
 
-const camera = new THREE.PerspectiveCamera(62, W()/H(), 0.1, 80);
+const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.1, 60);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.setSize(W(), H());
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2.5));
+renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-document.getElementById('canvas-container').appendChild(renderer.domElement);
+renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+document.getElementById('c').appendChild(renderer.domElement);
 
-// ─── CAMERA SETUP ────────────────────────────────────────────────────────────
-function setupCamera() {
-  const asp = W() / H();
-  if (asp < 0.65) {
-    // Portrait phone
-    camera.fov = 65;
-    camera.position.set(0, 1.2, 3.5);
-  } else if (asp < 1.0) {
-    // Portrait tablet
-    camera.fov = 60;
-    camera.position.set(0, 1.1, 3.2);
-  } else {
-    // Landscape
-    camera.fov = 55;
-    camera.position.set(0, 1.0, 3.0);
-  }
+// ── Camera positioning ──────────────────────────────────────────────────
+function positionCamera() {
+  const asp = innerWidth / innerHeight;
   camera.aspect = asp;
+  if (asp < 0.65) {
+    // Tall portrait phone (iPhone, Galaxy)
+    camera.fov = 64; camera.position.set(0, 1.3, 3.6);
+  } else if (asp < 0.85) {
+    camera.fov = 60; camera.position.set(0, 1.2, 3.3);
+  } else {
+    camera.fov = 56; camera.position.set(0, 1.1, 3.1);
+  }
   camera.updateProjectionMatrix();
-  camera.lookAt(0, 0, -6);
+  camera.lookAt(0, -0.1, -5.5);
 }
-setupCamera();
+positionCamera();
 
-// ─── LIGHTING ────────────────────────────────────────────────────────────────
-const ambient = new THREE.AmbientLight(0xffffff, 0.7);
-scene.add(ambient);
+// ═══════════════════════════════════════════════════════════════════════════
+// LIGHTING  (three-point + accent)
+// ═══════════════════════════════════════════════════════════════════════════
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
 
-const sun = new THREE.DirectionalLight(0xfff5e0, 1.2);
-sun.position.set(1, 5, 3);
-sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
-sun.shadow.camera.near = 0.5;
-sun.shadow.camera.far = 30;
-sun.shadow.camera.left = -5;
-sun.shadow.camera.right = 5;
-sun.shadow.camera.top = 8;
-sun.shadow.camera.bottom = -3;
-scene.add(sun);
+const keyLight = new THREE.DirectionalLight(0xfff5e0, 1.4);
+keyLight.position.set(1.5, 6, 2.5);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(1024, 1024);
+keyLight.shadow.camera.near = 0.5;
+keyLight.shadow.camera.far  = 32;
+keyLight.shadow.camera.left   = -6;
+keyLight.shadow.camera.right  =  6;
+keyLight.shadow.camera.top    =  8;
+keyLight.shadow.camera.bottom = -3;
+keyLight.shadow.bias = -0.0004;
+scene.add(keyLight);
 
-// Fill light from front-left
-const fill = new THREE.DirectionalLight(0xc7e0ff, 0.5);
-fill.position.set(-2, 2, 4);
-scene.add(fill);
+const fillLight = new THREE.DirectionalLight(0xc0d0ff, 0.55);
+fillLight.position.set(-2, 3, 4);
+scene.add(fillLight);
 
-// ─── CORRIDOR ENVIRONMENT ────────────────────────────────────────────────────
-// Office corridor: 3.2m wide, 3.5m tall, 28m deep
-// Perfectly fits portrait phone screens!
-const CORRIDOR_W = 3.2;
-const CORRIDOR_H = 3.5;
-const CORRIDOR_D = 28;
-const FLOOR_Y    = -1.5;
+const backLight = new THREE.PointLight(0x6600ff, 0.6, 18);
+backLight.position.set(0, 2.8, -8);
+scene.add(backLight);
 
-const mat = {
-  floor:    new THREE.MeshLambertMaterial({ color: 0x2a2a3a }),
-  carpet:   new THREE.MeshLambertMaterial({ color: 0x1a4a7a }),
-  wall:     new THREE.MeshLambertMaterial({ color: 0x3a3a4a }),
-  ceiling:  new THREE.MeshLambertMaterial({ color: 0x252535 }),
-  door:     new THREE.MeshLambertMaterial({ color: 0x5c3317 }),
-  doorFrame: new THREE.MeshLambertMaterial({ color: 0x1a1a2a }),
-  metal:    new THREE.MeshLambertMaterial({ color: 0x9ca3af }),
-  dark:     new THREE.MeshLambertMaterial({ color: 0x0f172a }),
-  wood:     new THREE.MeshLambertMaterial({ color: 0x6c3b17 }),
-  woodLight:new THREE.MeshLambertMaterial({ color: 0x78350f }),
-  white:    new THREE.MeshLambertMaterial({ color: 0xe2e8f0 }),
-  lightPanel: new THREE.MeshBasicMaterial({ color: 0xfff9e6 }),
-  blue:     new THREE.MeshLambertMaterial({ color: 0x0284c7 }),
+// Accent: warm glow from above-front
+const frontGlow = new THREE.PointLight(0x0a84ff, 0.35, 10);
+frontGlow.position.set(0, 3, 1);
+scene.add(frontGlow);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MATERIAL PALETTE (iOS 18 / Apple Design)
+// ═══════════════════════════════════════════════════════════════════════════
+const M = {
+  floor:     new THREE.MeshLambertMaterial({ color: 0x12121e }),
+  carpet:    new THREE.MeshLambertMaterial({ color: 0x0a2a4a }),
+  carpetLine:new THREE.MeshLambertMaterial({ color: 0x0a84ff }),
+  wall:      new THREE.MeshLambertMaterial({ color: 0x1c1c2e }),
+  wallAccent:new THREE.MeshLambertMaterial({ color: 0x22223a }),
+  ceiling:   new THREE.MeshLambertMaterial({ color: 0x0e0e1c }),
+  baseboard: new THREE.MeshLambertMaterial({ color: 0x090916 }),
+  door:      new THREE.MeshLambertMaterial({ color: 0x1e1e30 }),
+  doorFrame: new THREE.MeshLambertMaterial({ color: 0x0a84ff }),
+  glassPanel:new THREE.MeshLambertMaterial({ color: 0x0a84ff, transparent:true, opacity:0.18 }),
+  ledPanel:  new THREE.MeshBasicMaterial ({ color: 0xfff5e0 }),
+  ledBlue:   new THREE.MeshBasicMaterial ({ color: 0x0a84ff }),
+  wood:      new THREE.MeshLambertMaterial({ color: 0x4a2410 }),
+  woodLight: new THREE.MeshLambertMaterial({ color: 0x5c2e14 }),
+  metal:     new THREE.MeshLambertMaterial({ color: 0x3a3a4a }),
+  metalLight:new THREE.MeshLambertMaterial({ color: 0x9ca3af }),
+  bin:       new THREE.MeshLambertMaterial({ color: 0x2a2a3a, wireframe:true }),
+  binRim:    new THREE.MeshLambertMaterial({ color: 0x0a84ff }),
+  binBase:   new THREE.MeshLambertMaterial({ color: 0x12121e }),
+  paper:     new THREE.MeshLambertMaterial({ color: 0xf5f0e8 }),
+  chair:     new THREE.MeshLambertMaterial({ color: 0x0a2540 }),
+  chairMetal:new THREE.MeshLambertMaterial({ color: 0x3a3a4a }),
+  cooler:    new THREE.MeshLambertMaterial({ color: 0xe2e8f0 }),
+  water:     new THREE.MeshLambertMaterial({ color: 0x0a84ff, transparent:true, opacity:0.55 }),
 };
 
-function box(w,h,d,m,x,y,z) {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), m);
-  mesh.position.set(x,y,z);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  scene.add(mesh);
-  return mesh;
+// ═══════════════════════════════════════════════════════════════════════════
+// GEOMETRY HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+function mkBox(w,h,d,mat,x,y,z,shadow=true) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
+  m.position.set(x,y,z);
+  if (shadow) { m.castShadow = true; m.receiveShadow = true; }
+  scene.add(m); return m;
+}
+function mkCyl(rt,rb,h,seg,mat,x,y,z,open=false) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg,1,open), mat);
+  m.position.set(x,y,z);
+  m.castShadow = true; m.receiveShadow = true;
+  scene.add(m); return m;
+}
+function mkTorus(r,tube,mat,x,y,z) {
+  const m = new THREE.Mesh(new THREE.TorusGeometry(r,tube,12,32), mat);
+  m.position.set(x,y,z); m.rotation.x = Math.PI/2;
+  m.castShadow = true; scene.add(m); return m;
 }
 
-// Floor
-box(CORRIDOR_W, 0.05, CORRIDOR_D, mat.floor, 0, FLOOR_Y, -CORRIDOR_D/2 + 2);
-// Carpet runner
-box(1.4, 0.01, CORRIDOR_D-2, mat.carpet, 0, FLOOR_Y+0.03, -CORRIDOR_D/2 + 2);
-// Ceiling
-box(CORRIDOR_W, 0.05, CORRIDOR_D, mat.ceiling, 0, FLOOR_Y+CORRIDOR_H, -CORRIDOR_D/2 + 2);
-// Left wall
-box(0.05, CORRIDOR_H, CORRIDOR_D, mat.wall, -CORRIDOR_W/2, FLOOR_Y+CORRIDOR_H/2, -CORRIDOR_D/2 + 2);
-// Right wall
-box(0.05, CORRIDOR_H, CORRIDOR_D, mat.wall, CORRIDOR_W/2, FLOOR_Y+CORRIDOR_H/2, -CORRIDOR_D/2 + 2);
-// Back wall
-box(CORRIDOR_W, CORRIDOR_H, 0.05, mat.wall, 0, FLOOR_Y+CORRIDOR_H/2, -CORRIDOR_D+2);
+// ═══════════════════════════════════════════════════════════════════════════
+// OFFICE CORRIDOR  (3.4m wide × 32m deep)
+// Perfect for portrait phone screens — everything is in the Z axis!
+// ═══════════════════════════════════════════════════════════════════════════
+const DEPTH   = 32;
+const HALF_D  = DEPTH / 2;
+const CEIL_H  = 3.2;
+const CZ      = -(HALF_D - 2); // centre z of corridor geometry
+
+// Structural
+mkBox(CORRIDOR_W, 0.04, DEPTH, M.floor,   0, FLOOR_Y,            CZ);
+mkBox(CORRIDOR_W, 0.04, DEPTH, M.ceiling, 0, FLOOR_Y + CEIL_H,   CZ);
+mkBox(0.04, CEIL_H, DEPTH, M.wall,        -CORRIDOR_HALF, FLOOR_Y + CEIL_H/2, CZ);
+mkBox(0.04, CEIL_H, DEPTH, M.wall,         CORRIDOR_HALF, FLOOR_Y + CEIL_H/2, CZ);
+mkBox(CORRIDOR_W, CEIL_H, 0.04, M.wallAccent, 0, FLOOR_Y + CEIL_H/2, -(DEPTH - 2));
+
+// Carpet runner (blue, iOS accent)
+mkBox(1.2, 0.012, DEPTH - 2, M.carpet,    0, FLOOR_Y + 0.006, CZ);
+mkBox(0.04, 0.008, DEPTH - 2, M.carpetLine, -0.62, FLOOR_Y+0.012, CZ, false);
+mkBox(0.04, 0.008, DEPTH - 2, M.carpetLine,  0.62, FLOOR_Y+0.012, CZ, false);
+
 // Baseboards
-box(0.06, 0.15, CORRIDOR_D, mat.dark, -CORRIDOR_W/2+0.03, FLOOR_Y+0.075, -CORRIDOR_D/2+2);
-box(0.06, 0.15, CORRIDOR_D, mat.dark,  CORRIDOR_W/2-0.03, FLOOR_Y+0.075, -CORRIDOR_D/2+2);
+mkBox(0.06, 0.15, DEPTH, M.baseboard, -CORRIDOR_HALF+0.03, FLOOR_Y+0.075, CZ);
+mkBox(0.06, 0.15, DEPTH, M.baseboard,  CORRIDOR_HALF-0.03, FLOOR_Y+0.075, CZ);
 
-// LED ceiling panels
-for (let z = -2; z >= -24; z -= 5) {
-  box(0.6, 0.04, 1.4, mat.lightPanel, 0, FLOOR_Y+CORRIDOR_H-0.03, z);
+// LED ceiling strips
+for (let z = -1.5; z >= -28; z -= 5.5) {
+  mkBox(0.55, 0.04, 1.6, M.ledPanel, 0, FLOOR_Y+CEIL_H-0.025, z, false);
+  mkBox(0.55, 0.01, 1.6, M.ledBlue,  0, FLOOR_Y+CEIL_H-0.005, z, false);
 }
 
-// Corridor doors - left wall
-[-5, -12, -19].forEach(z => {
-  box(0.05, 2.1, 0.9, mat.doorFrame, -CORRIDOR_W/2+0.04, FLOOR_Y+1.05, z);
-  box(0.03, 2.0, 0.82, mat.door, -CORRIDOR_W/2+0.06, FLOOR_Y+1.0, z);
+// Blue accent wall strips (modern Apple office feel)
+for (let z = -3; z >= -27; z -= 6) {
+  mkBox(0.04, CEIL_H * 0.7, 0.04, M.doorFrame, -CORRIDOR_HALF+0.04, FLOOR_Y + CEIL_H*0.65, z, false);
+  mkBox(0.04, CEIL_H * 0.7, 0.04, M.doorFrame,  CORRIDOR_HALF-0.04, FLOOR_Y + CEIL_H*0.65, z, false);
+}
+
+// Office Doors — left wall
+[-5, -12, -20].forEach(z => {
+  mkBox(0.06, 2.1, 0.02, M.doorFrame, -CORRIDOR_HALF+0.04, FLOOR_Y+1.05, z);
+  mkBox(0.04, 2.0, 0.85, M.door,      -CORRIDOR_HALF+0.05, FLOOR_Y+1.0,  z);
+  // Door glowing strip
+  mkBox(0.02, 1.8, 0.02, M.ledBlue,   -CORRIDOR_HALF+0.04, FLOOR_Y+1.0, z, false);
 });
-// Corridor doors - right wall
+
+// Office Doors — right wall
 [-8, -16].forEach(z => {
-  box(0.05, 2.1, 0.9, mat.doorFrame, CORRIDOR_W/2-0.04, FLOOR_Y+1.05, z);
-  box(0.03, 2.0, 0.82, mat.door, CORRIDOR_W/2-0.06, FLOOR_Y+1.0, z);
+  mkBox(0.06, 2.1, 0.02, M.doorFrame,  CORRIDOR_HALF-0.04, FLOOR_Y+1.05, z);
+  mkBox(0.04, 2.0, 0.85, M.door,       CORRIDOR_HALF-0.05, FLOOR_Y+1.0,  z);
+  mkBox(0.02, 1.8, 0.02, M.ledBlue,    CORRIDOR_HALF-0.04, FLOOR_Y+1.0, z, false);
 });
 
-// Side table (right wall, Z=-8)
-box(0.8, 0.06, 1.8, mat.woodLight, 1.0, FLOOR_Y+0.98, -8);
-[-0.3, 0.3].forEach(ox => [-0.7, 0.7].forEach(oz =>
-  box(0.04, 1.0, 0.04, mat.dark, 1.0+ox, FLOOR_Y+0.5, -8+oz)
-));
+// Glass panels (frosted, Apple-style dividers)
+mkBox(0.03, 1.4, 0.9, M.glassPanel, -CORRIDOR_HALF+0.06, FLOOR_Y+2.1, -2);
+mkBox(0.03, 1.4, 0.9, M.glassPanel,  CORRIDOR_HALF-0.06, FLOOR_Y+2.1, -2);
 
-// Chairs beside table
-[-10.5, -5.5].forEach((z, i) => {
-  const cx = 0.95;
-  box(0.5, 0.05, 0.5, mat.blue, cx, FLOOR_Y+0.46, z);
-  box(0.5, 0.45, 0.05, mat.blue, cx, FLOOR_Y+0.68, z-(i===0?-0.22:0.22));
+// ── Side Table (right side, bin target surface) ────────────────────────
+const TABLE_X = CORRIDOR_HALF - 0.55;
+const TABLE_Z = -8;
+mkBox(0.85, 0.05, 1.8, M.wood,      TABLE_X, FLOOR_Y+0.98, TABLE_Z);
+[-0.32,0.32].forEach(ox => [-0.75,0.75].forEach(oz =>
+  mkBox(0.04, 1.0, 0.04, M.metal, TABLE_X+ox, FLOOR_Y+0.5, TABLE_Z+oz)
+));
+// Table shelf
+mkBox(0.75, 0.03, 1.6, M.woodLight, TABLE_X, FLOOR_Y+0.5, TABLE_Z);
+
+// ── Chairs ────────────────────────────────────────────────────────────
+const CHAIR_X = TABLE_X;
+[TABLE_Z - 1.45, TABLE_Z + 1.45].forEach((cz, i) => {
+  // seat
+  mkBox(0.52, 0.05, 0.52, M.chair, CHAIR_X, FLOOR_Y+0.48, cz);
+  // back
+  mkBox(0.52, 0.42, 0.05, M.chair, CHAIR_X, FLOOR_Y+0.69, cz + (i===0?0.22:-0.22));
+  // legs
   [-0.2,0.2].forEach(ox => [-0.2,0.2].forEach(oz =>
-    box(0.04, 0.48, 0.04, mat.dark, cx+ox, FLOOR_Y+0.24, z+oz)
+    mkBox(0.035, 0.48, 0.035, M.chairMetal, CHAIR_X+ox, FLOOR_Y+0.24, cz+oz)
   ));
 });
 
-// Water cooler (left wall)
-box(0.35, 0.85, 0.35, mat.white, -1.1, FLOOR_Y+0.425, -10);
-box(0.28, 0.42, 0.28, mat.blue,  -1.1, FLOOR_Y+1.06,  -10);
+// ── Water Cooler (left side) ───────────────────────────────────────────
+const COOL_X = -(CORRIDOR_HALF - 0.55);
+mkBox(0.38, 0.88, 0.38, M.cooler, COOL_X, FLOOR_Y+0.44, -11);
+mkCyl(0.14, 0.14, 0.44, 14, M.water, COOL_X, FLOOR_Y+1.1, -11);
 
-// Wall art frames
-box(1.2, 0.75, 0.04, mat.dark, -CORRIDOR_W/2+0.04, FLOOR_Y+2.0, -10);
-box(1.0, 0.6,  0.02, mat.blue, -CORRIDOR_W/2+0.05, FLOOR_Y+2.0, -10);
-box(1.2, 0.75, 0.04, mat.dark, CORRIDOR_W/2-0.04, FLOOR_Y+2.0, -15);
-box(1.0, 0.6,  0.02, mat.blue, CORRIDOR_W/2-0.05, FLOOR_Y+2.0, -15);
+// ── Wall Art / Displays ───────────────────────────────────────────────
+[{x:-CORRIDOR_HALF+0.05, z:-10}, {x:CORRIDOR_HALF-0.05, z:-15}].forEach(p => {
+  mkBox(0.04, 0.85, 1.4, M.doorFrame,  p.x, FLOOR_Y+2.05, p.z);
+  mkBox(0.02, 0.75, 1.25, M.glassPanel, p.x+(p.x<0?0.02:-0.02), FLOOR_Y+2.05, p.z);
+});
 
-// Toss desk (where player stands)
-box(0.8, 0.06, 0.45, mat.wood, 0, FLOOR_Y+0.33, -0.8);
-[-0.3,0.3].forEach(ox => [-0.15,0.15].forEach(oz =>
-  box(0.03, 0.35, 0.03, mat.dark, ox, FLOOR_Y+0.15, -0.8+oz)
+// ── Toss Ledge (player desk) ──────────────────────────────────────────
+mkBox(0.78, 0.06, 0.44, M.wood,  0, FLOOR_Y+0.35, -0.88);
+[-0.3,0.3].forEach(ox => [-0.13,0.13].forEach(oz =>
+  mkBox(0.035, 0.36, 0.035, M.metal, ox, FLOOR_Y+0.17, -0.88+oz)
 ));
+// Apple-style glowing edge strip
+mkBox(0.78, 0.008, 0.01, M.ledBlue, 0, FLOOR_Y+0.38, -0.66, false);
 
-// ─── PAPER BALL ─────────────────────────────────────────────────────────────
-const ballGeo = new THREE.IcosahedronGeometry(0.08, 2);
-const ballMat = new THREE.MeshLambertMaterial({ color: 0xfdf6e3 });
-const ball    = new THREE.Mesh(ballGeo, ballMat);
-ball.castShadow = true;
-scene.add(ball);
-
-// Ball shadow disc
-const shadowGeo = new THREE.CircleGeometry(0.12, 16);
-const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25, depthWrite: false });
-const ballShadow = new THREE.Mesh(shadowGeo, shadowMat);
-ballShadow.rotation.x = -Math.PI/2;
-ballShadow.position.y = FLOOR_Y + 0.01;
-scene.add(ballShadow);
-
-// ─── TRASH BIN ───────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// TRASH BIN  (wireframe + solid rim — iOS 18 translucent style)
+// ═══════════════════════════════════════════════════════════════════════════
 const binGroup = new THREE.Group();
 
-// Bin body (wireframe)
-const binBodyGeo = new THREE.CylinderGeometry(0.32, 0.24, 0.72, 20, 1, true);
-const binBodyMat = new THREE.MeshLambertMaterial({ color: 0x64748b, wireframe: true, side: THREE.DoubleSide });
-const binBody = new THREE.Mesh(binBodyGeo, binBodyMat);
-binBody.position.y = 0.36;
-binGroup.add(binBody);
+// Body (wireframe cylinder)
+const binMesh = new THREE.Mesh(
+  new THREE.CylinderGeometry(BIN_RIM_R, 0.23, BIN_HEIGHT, 22, 1, true),
+  M.bin
+);
+binMesh.position.y = BIN_HEIGHT / 2;
+binGroup.add(binMesh);
 
-// Bin rim
-const rimGeo = new THREE.TorusGeometry(0.32, 0.022, 10, 28);
-const rimMat = new THREE.MeshLambertMaterial({ color: 0xcbd5e1 });
-const rim = new THREE.Mesh(rimGeo, rimMat);
-rim.rotation.x = Math.PI/2;
-rim.position.y = 0.72;
-binGroup.add(rim);
+// Metallic rim (blue accent — Apple style)
+const rimMesh = new THREE.Mesh(new THREE.TorusGeometry(BIN_RIM_R, 0.022, 12, 32), M.binRim);
+rimMesh.rotation.x = Math.PI / 2;
+rimMesh.position.y = BIN_HEIGHT;
+rimMesh.castShadow = true;
+binGroup.add(rimMesh);
 
-// Bin base
-const baseGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.03, 20);
-const baseMat = new THREE.MeshLambertMaterial({ color: 0x1e293b });
-const base = new THREE.Mesh(baseGeo, baseMat);
-base.position.y = 0.015;
-binGroup.add(base);
+// Base disc
+const baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.23, 0.03, 22), M.binBase);
+baseMesh.position.y = 0.015;
+binGroup.add(baseMesh);
 
 scene.add(binGroup);
 
-// ─── TRAJECTORY DOTS ─────────────────────────────────────────────────────────
-const NUM_DOTS = 12;
-const dots = [];
-const dotGeo = new THREE.SphereGeometry(0.025, 6, 6);
-for (let i = 0; i < NUM_DOTS; i++) {
-  const dm = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 });
-  const d = new THREE.Mesh(dotGeo, dm);
-  d.visible = false;
-  scene.add(d);
-  dots.push(d);
+// ═══════════════════════════════════════════════════════════════════════════
+// PAPER BALL
+// ═══════════════════════════════════════════════════════════════════════════
+const ballGeo = new THREE.IcosahedronGeometry(BALL_R, 2);
+
+// Add crinkle deformation to the geometry
+{
+  const pos = ballGeo.attributes.position;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i);
+    const noise = Math.sin(v.x*28)*Math.cos(v.z*28)*0.014 + Math.sin(v.y*28)*0.008;
+    v.addScaledVector(v.clone().normalize(), noise);
+    pos.setXYZ(i, v.x, v.y, v.z);
+  }
+  ballGeo.computeVertexNormals();
 }
 
-// ─── GAME STATE ──────────────────────────────────────────────────────────────
+const ball = new THREE.Mesh(ballGeo, M.paper);
+ball.castShadow = true;
+scene.add(ball);
+
+// Shadow disc under ball
+const bShadowMesh = new THREE.Mesh(
+  new THREE.CircleGeometry(0.13, 16),
+  new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.22, depthWrite:false })
+);
+bShadowMesh.rotation.x = -Math.PI/2;
+scene.add(bShadowMesh);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TRAJECTORY DOTS
+// ═══════════════════════════════════════════════════════════════════════════
+const NUM_DOTS = 14;
+const dotPool  = [];
+for (let i = 0; i < NUM_DOTS; i++) {
+  const dm = new THREE.Mesh(
+    new THREE.SphereGeometry(0.024, 7, 7),
+    new THREE.MeshBasicMaterial({ color:0x0a84ff, transparent:true, opacity:0.85 })
+  );
+  dm.visible = false;
+  scene.add(dm);
+  dotPool.push(dm);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════════════════════════
 let score  = 0;
-let best   = parseInt(localStorage.getItem('pt3d_best') || '0');
+let best   = parseInt(localStorage.getItem('pt3d_best') || '0', 10);
 let streak = 0;
 let isResetting = false;
-let guideVisible = true;
+let guideHidden = false;
+let muted = false;
 
-// Ball physics
-const BIN_RIM_R  = 0.32;
-const BIN_RIM_H  = 0.72;
-const BALL_R     = 0.08;
-const BALL_START = { x: 0, y: FLOOR_Y+0.42, z: -0.8 };
-let bPos   = { ...BALL_START };
-let bVel   = { x: 0, y: 0, z: 0 };
-let bRot   = { x: 0, y: 0, z: 0 };
-let bAngV  = { x: 0, y: 0, z: 0 };
-let bState = 'IDLE'; // IDLE FLYING BOUNCING SCORED MISSED
-let hasRim = false;
+// Ball physics state
+const BALL_REST = { x:0, y: FLOOR_Y + BALL_R + 0.36, z:-0.88 };
+let bp = { ...BALL_REST };      // position
+let bv = { x:0, y:0, z:0 };    // velocity
+let br = { x:0, y:0, z:0 };    // rotation
+let bav= { x:0, y:0, z:0 };    // angular velocity
+let bstate = 'IDLE';            // IDLE FLYING BOUNCING SCORED MISSED
+let hasRimHit = false;
+let rimHitCount = 0;
 
-// Bin position
-let binX = 0, binZ = 5, binSurfY = FLOOR_Y, binSurf = 'floor';
+// Bin placement
+let binX=0, binZ=5, binSurfY=FLOOR_Y, binSurf='floor';
 
+// Camera yaw smoothing
+let camYawTarget = 0, camYaw = 0;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BIN PLACEMENT  (randomized every throw)
+// ═══════════════════════════════════════════════════════════════════════════
 function placeBin() {
   const r = Math.random();
-  if (r < 0.25) {
-    // On side table
-    binX = 1.0; binZ = 8; binSurfY = FLOOR_Y + 1.01; binSurf = 'table';
-  } else if (r < 0.40) {
-    // On chair
-    binX = 0.95; binZ = Math.random() > 0.5 ? 10.5 : 5.5; binSurfY = FLOOR_Y + 0.49; binSurf = 'chair';
+  if (r < 0.22) {
+    // ON SIDE TABLE
+    binX    = TABLE_X + (Math.random()-0.5)*0.25;
+    binZ    = Math.abs(TABLE_Z);
+    binSurfY = FLOOR_Y + 1.01;
+    binSurf  = 'table';
+  } else if (r < 0.38) {
+    // ON CHAIR
+    binX    = CHAIR_X + (Math.random()-0.5)*0.15;
+    binZ    = Math.abs(TABLE_Z) + (Math.random() > 0.5 ? 1.45 : -1.45);
+    binSurfY = FLOOR_Y + 0.51;
+    binSurf  = 'chair';
   } else {
-    // Floor - corridor width ±1.0m, depth 3.5-16m
-    binX = (Math.random() - 0.5) * 2.0;
-    binZ = 3.5 + Math.random() * 12.5;
-    binSurfY = FLOOR_Y; binSurf = 'floor';
+    // CORRIDOR FLOOR — full width & depth
+    binX    = (Math.random() - 0.5) * (CORRIDOR_W - 0.8);
+    binZ    = 4.0 + Math.random() * 14.0;
+    binSurfY = FLOOR_Y;
+    binSurf  = 'floor';
   }
+
   binGroup.position.set(binX, binSurfY, -binZ);
+  camYawTarget = binX * 0.07;
+
   // Update UI
-  document.getElementById('t-dist').textContent = binZ.toFixed(1) + 'm';
-  document.getElementById('t-surf').textContent =
-    binSurf === 'table' ? 'ON TABLE' :
-    binSurf === 'chair' ? 'ON CHAIR' :
-    Math.abs(binX) < 0.15 ? 'CENTER' :
+  document.getElementById('ui-dist').textContent = binZ.toFixed(1) + 'm';
+  document.getElementById('ui-surf').textContent =
+    binSurf === 'table' ? 'TABLE' :
+    binSurf === 'chair' ? 'CHAIR' :
+    Math.abs(binX) < 0.2 ? 'CENTER' :
     binX < 0 ? 'LEFT' : 'RIGHT';
 }
 
 function resetBall() {
-  bPos   = { ...BALL_START };
-  bVel   = { x: 0, y: 0, z: 0 };
-  bRot   = { x: 0, y: 0, z: 0 };
-  bAngV  = { x: 0, y: 0, z: 0 };
-  bState = 'IDLE';
-  hasRim = false;
+  bp = { ...BALL_REST };
+  bv = { x:0, y:0, z:0 };
+  br = { x:0, y:0, z:0 };
+  bav= { x:0, y:0, z:0 };
+  bstate   = 'IDLE';
+  hasRimHit  = false;
+  rimHitCount= 0;
+  dotPool.forEach(d => d.visible = false);
 }
 
 placeBin();
 resetBall();
 
-// ─── PHYSICS UPDATE ──────────────────────────────────────────────────────────
-function physicsUpdate(dt) {
-  if (bState === 'IDLE') return;
+// Update HUD
+function updateHUD() {
+  document.getElementById('ui-score').textContent = score;
+  document.getElementById('ui-best').textContent  = best;
+  const el = document.getElementById('streak');
+  if (streak >= 2) {
+    document.getElementById('ui-streak').textContent = streak + '×';
+    el.classList.add('show');
+  } else {
+    el.classList.remove('show');
+  }
+}
+updateHUD();
 
-  const G = 9.81;
-  const DRAG = 0.10;
+// ═══════════════════════════════════════════════════════════════════════════
+// PHYSICS UPDATE
+// ═══════════════════════════════════════════════════════════════════════════
+function physicsTick(dt) {
+  if (bstate === 'IDLE') return;
 
-  // Spin
-  bRot.x += bAngV.x * dt;
-  bRot.y += bAngV.y * dt;
-  bRot.z += bAngV.z * dt;
+  const G = 9.81, DRAG = 0.11;
 
-  if (bState === 'FLYING' || bState === 'BOUNCING') {
-    bVel.y -= G * dt;
+  br.x += bav.x * dt;
+  br.y += bav.y * dt;
+  br.z += bav.z * dt;
+
+  if (bstate === 'FLYING' || bstate === 'BOUNCING') {
+    bv.y -= G * dt;
     const d = 1 - DRAG * dt;
-    bVel.x *= d; bVel.y *= d; bVel.z *= d;
-    bPos.x += bVel.x * dt;
-    bPos.y += bVel.y * dt;
-    bPos.z += bVel.z * dt;
+    bv.x *= d; bv.y *= d; bv.z *= d;
+    bp.x += bv.x * dt;
+    bp.y += bv.y * dt;
+    bp.z += bv.z * dt;
     checkCollisions();
-  } else if (bState === 'SCORED') {
-    const botY = binSurfY + 0.06;
-    if (bPos.y > botY) { bPos.y -= 1.8 * dt; bVel.x *= 0.2; bVel.z *= 0.2; }
+  } else if (bstate === 'SCORED') {
+    const botY = binSurfY + 0.04;
+    if (bp.y > botY) { bp.y -= 1.8*dt; bv.x *= 0.15; bv.z *= 0.15; }
   }
 
-  // Out of bounds
-  if (bPos.z < -30 || Math.abs(bPos.x) > 8 || bPos.y < FLOOR_Y - 2) {
-    if (bState !== 'SCORED' && bState !== 'MISSED') onMiss();
+  // Safety bounds
+  if (bp.z < -34 || Math.abs(bp.x) > 9 || bp.y < FLOOR_Y - 2.5) {
+    if (bstate !== 'SCORED' && bstate !== 'MISSED') onMiss();
   }
 }
 
 function checkCollisions() {
-  const rimY   = binSurfY + BIN_RIM_H;
-  const dx     = bPos.x - binX;
-  const dz     = bPos.z - (-binZ);
+  const rimY   = binSurfY + BIN_HEIGHT;
+  const dx     = bp.x - binX;
+  const dz     = bp.z - (-binZ);
   const distXZ = Math.sqrt(dx*dx + dz*dz);
 
-  // SCORE: ball passes through rim from above
-  if (bState === 'FLYING' && bPos.y <= rimY && bPos.y >= rimY - 0.18) {
+  // ── BASKET ENTRY (ball crosses rim plane from above) ─────────────────
+  if (bstate === 'FLYING' && bp.y <= rimY && bp.y >= rimY - 0.22) {
     if (distXZ < BIN_RIM_R - 0.04) {
-      bState = 'SCORED';
-      bVel.x *= 0.05; bVel.z *= 0.05; bVel.y = -0.5;
+      bstate = 'SCORED';
+      bv.x *= 0.05; bv.z *= 0.05; bv.y = -0.55;
       onScore();
       return;
     }
   }
 
-  // RIM HIT
+  // ── RIM COLLISION ─────────────────────────────────────────────────────
   const edgeDist = Math.abs(distXZ - BIN_RIM_R);
-  if (edgeDist < BALL_R + 0.02 && Math.abs(bPos.y - rimY) < 0.18) {
-    if (!hasRim) { hasRim = true; vibrate(20); }
-    bState = 'BOUNCING';
+  if ((bstate === 'FLYING' || bstate === 'BOUNCING') &&
+      edgeDist < BALL_R + 0.025 &&
+      Math.abs(bp.y - rimY) < 0.20) {
+    rimHitCount++;
+    if (!hasRimHit) hasRimHit = true;
+    bstate = 'BOUNCING';
+    vib(20);
     const nx = distXZ > 0.001 ? dx/distXZ : 1;
     const nz = distXZ > 0.001 ? dz/distXZ : 0;
-    const dot = bVel.x*nx + bVel.z*nz;
-    bVel.x = (bVel.x - 2 * dot * nx) * 0.6;
-    bVel.z = (bVel.z - 2 * dot * nz) * 0.6;
-    bVel.y = Math.abs(bVel.y) * 0.4 + 1.0;
+    const dot = bv.x*nx + bv.z*nz;
+    bv.x = (bv.x - 2*dot*nx) * 0.6;
+    bv.z = (bv.z - 2*dot*nz) * 0.6;
+    bv.y = Math.abs(bv.y)*0.35 + 0.9;
+    // Dampen to prevent infinite rim bouncing
+    if (rimHitCount >= 4) { bstate = 'MISSED'; onMiss(); }
   }
 
-  // FLOOR / SURFACE COLLISION
-  let floorY = FLOOR_Y + BALL_R;
-  if (binSurf === 'table' && Math.abs(dx) < 0.65 && Math.abs(dz) < 1.1) floorY = binSurfY + BALL_R + 0.06;
-  if (binSurf === 'chair' && Math.abs(dx) < 0.4  && Math.abs(dz) < 0.4)  floorY = binSurfY + BALL_R + 0.05;
+  // ── SURFACE / FLOOR ───────────────────────────────────────────────────
+  let surfY = FLOOR_Y + BALL_R;
+  if (binSurf === 'table' && Math.abs(dx) < 0.62 && Math.abs(dz) < 1.1)
+    surfY = binSurfY + BALL_R + 0.05;
+  if (binSurf === 'chair' && Math.abs(dx) < 0.38 && Math.abs(dz) < 0.38)
+    surfY = binSurfY + BALL_R + 0.05;
 
-  if (bPos.y <= floorY) {
-    bPos.y = floorY;
-    if (Math.abs(bVel.y) > 0.6) {
-      bVel.y = -bVel.y * 0.3;
-      bVel.x *= 0.5; bVel.z *= 0.5;
+  if (bp.y <= surfY) {
+    bp.y = surfY;
+    if (Math.abs(bv.y) > 0.7) {
+      bv.y = -bv.y * 0.28;
+      bv.x *= 0.45; bv.z *= 0.45;
     } else {
-      bVel = { x:0, y:0, z:0 };
-      bAngV = { x:0, y:0, z:0 };
-      if (bState !== 'SCORED' && bState !== 'MISSED') {
-        bState = 'MISSED';
+      bv = {x:0,y:0,z:0}; bav = {x:0,y:0,z:0};
+      if (bstate !== 'SCORED' && bstate !== 'MISSED') {
+        bstate = 'MISSED';
         onMiss();
       }
     }
   }
 }
 
-// ─── GAME EVENTS ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// GAME EVENTS
+// ═══════════════════════════════════════════════════════════════════════════
 function onScore() {
-  score += hasRim ? 1 : 2;
-  streak++;
+  const pts = hasRimHit ? 1 : 2;
+  score += pts; streak++;
   if (score > best) { best = score; localStorage.setItem('pt3d_best', best); }
-  document.getElementById('score').textContent = score;
-  document.getElementById('best').textContent  = best;
-  updateStreak();
-  showPop(hasRim ? 'RIM SHOT! +1' : 'SWISH! +2', hasRim ? 'rim' : 'swish');
-  vibrate(hasRim ? 30 : [20,40,60]);
-  if (!isResetting) {
-    isResetting = true;
-    setTimeout(() => { placeBin(); resetBall(); isResetting = false; }, 1400);
-  }
+  updateHUD();
+  showPop(hasRimHit ? 'RIM SHOT! +1' : 'SWISH! +2', hasRimHit ? 'rim' : 'swish');
+  vib(hasRimHit ? 30 : [15, 40, 60]);
+  burstConfetti(binGroup.position.x, binGroup.position.y + BIN_HEIGHT, binGroup.position.z);
+  scheduleReset(1300);
 }
 
 function onMiss() {
-  streak = 0;
-  updateStreak();
+  streak = 0; updateHUD();
   showPop('MISS!', 'miss');
-  vibrate([40,20,40]);
-  if (!isResetting) {
-    isResetting = true;
-    setTimeout(() => { resetBall(); isResetting = false; }, 1100);
-  }
+  vib([35, 20, 35]);
+  scheduleReset(1000);
 }
 
-function updateStreak() {
-  const el = document.getElementById('streak');
-  if (streak >= 2) {
-    document.getElementById('streak-count').textContent = streak + 'x';
-    el.classList.add('show');
-  } else {
-    el.classList.remove('show');
-  }
+function scheduleReset(delay) {
+  if (isResetting) return;
+  isResetting = true;
+  setTimeout(() => {
+    placeBin();  // ← New random position every single attempt!
+    resetBall();
+    isResetting = false;
+  }, delay);
 }
 
 let popTimer = null;
@@ -585,180 +789,249 @@ function showPop(text, cls) {
   popTimer = setTimeout(() => { el.innerHTML = ''; }, 1200);
 }
 
-function vibrate(pattern) {
-  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch(e) {}
+function vib(p) {
+  try { if (navigator.vibrate) navigator.vibrate(p); } catch(_) {}
 }
 
-// ─── TOUCH / SWIPE CONTROLS ──────────────────────────────────────────────────
-let touchStartX = 0, touchStartY = 0, touchStartT = 0;
-let isDragging = false;
-let smoothImpulse = { x:0, y:0, z:0 };
-let track = [];
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTROLS  (touch + mouse)
+// ═══════════════════════════════════════════════════════════════════════════
+const meterEl = document.getElementById('meter');
+const barEl   = document.getElementById('ui-bar');
+const pctEl   = document.getElementById('ui-pct');
+const estEl   = document.getElementById('ui-est');
 
-const eFill = document.getElementById('e-fill');
-const ePct  = document.getElementById('e-pct');
-const eEst  = document.getElementById('e-est');
-const eHud  = document.getElementById('energy');
+let isDragging = false, startX=0, startY=0, startT=0;
+let track = [], smoothImp = {x:0,y:0,z:0};
 
-function onTouchStart(cx, cy) {
-  if (cy < H() * 0.25) return;
-  isDragging   = true;
-  touchStartX  = cx;
-  touchStartY  = cy;
-  touchStartT  = performance.now();
-  track        = [{ x:cx, y:cy, t: touchStartT }];
-  smoothImpulse = { x:0, y:0, z:0 };
-  eHud.classList.add('show');
-  if (guideVisible) {
-    document.getElementById('guide').style.opacity = '0';
-    guideVisible = false;
+function dragStart(cx, cy) {
+  if (cy < innerHeight * 0.22) return;
+  isDragging = true;
+  startX = cx; startY = cy; startT = performance.now();
+  track  = [{ x:cx, y:cy, t:startT }];
+  smoothImp = {x:0,y:0,z:0};
+  meterEl.classList.add('show');
+  if (!guideHidden) {
+    document.getElementById('guide').classList.add('hidden');
+    guideHidden = true;
   }
 }
 
-function onTouchMove(cx, cy) {
+function dragMove(cx, cy) {
   if (!isDragging) return;
   const now = performance.now();
-  track.push({ x:cx, y:cy, t:now });
+  track.push({x:cx,y:cy,t:now});
   if (track.length > 5) track.shift();
 
-  const deltaX = cx - touchStartX;
-  const deltaY = touchStartY - cy;
+  const dX = cx - startX;
+  const dY = startY - cy;  // positive = upward
 
-  const p0 = track[0], pN = track[track.length-1];
-  const dt0 = Math.max(16, pN.t - p0.t);
-  const speedY = ((p0.y - pN.y) / dt0) * 1000;
-  const powerInput = Math.max(deltaY, speedY);
+  const p0  = track[0], pN = track[track.length-1];
+  const spd = Math.max(0, (p0.y - pN.y) / Math.max(16, pN.t-p0.t) * 1000);
+  const pwr = Math.max(dY, spd);
 
-  const tImpX = (deltaX / (W() * 0.4)) * 4.0;
-  const tImpY = Math.min(Math.max(powerInput / 800 * 3.5 + 2.5, 4.0), 9.0);
-  const tImpZ = -Math.min(Math.max(powerInput / 700 * 6.0 + 4.5, 5.0), 16.0);
+  const tX = (dX / (innerWidth * 0.38)) * 4.2;
+  const tY = Math.min(Math.max(pwr/750 * 3.5 + 2.5, 4.2), 9.0);
+  const tZ = -Math.min(Math.max(pwr/680 * 6.2 + 4.5, 5.2), 16.5);
 
-  const a = 0.45;
-  smoothImpulse.x += (tImpX - smoothImpulse.x) * a;
-  smoothImpulse.y += (tImpY - smoothImpulse.y) * a;
-  smoothImpulse.z += (tImpZ - smoothImpulse.z) * a;
+  const a = 0.42;
+  smoothImp.x += (tX - smoothImp.x)*a;
+  smoothImp.y += (tY - smoothImp.y)*a;
+  smoothImp.z += (tZ - smoothImp.z)*a;
 
-  const pct  = Math.min(100, Math.round(Math.max(0, (powerInput - 100) / 1600 * 100)));
-  const est  = Math.abs(smoothImpulse.z * 0.75);
+  const pct = Math.min(100, Math.round(Math.max(0, (pwr-80)/1600*100)));
+  const est = Math.abs(smoothImp.z * 0.76);
 
-  eFill.style.width = pct + '%';
-  eFill.style.background = pct > 80 ? 'linear-gradient(90deg,#f59e0b,#ef4444)'
-                         : pct > 50 ? 'linear-gradient(90deg,#10b981,#f59e0b)'
-                         : 'linear-gradient(90deg,#38bdf8,#3b82f6)';
-  ePct.textContent  = pct + '%';
-  eEst.textContent  = 'EST. ' + est.toFixed(1) + 'm';
+  barEl.style.width = pct + '%';
+  barEl.style.background = pct > 80
+    ? 'linear-gradient(90deg,#ff9f0a,#ff453a)'
+    : pct > 50
+    ? 'linear-gradient(90deg,#30d158,#ff9f0a)'
+    : 'linear-gradient(90deg,#0a84ff,#5e5ce6)';
+  pctEl.textContent = pct + '%';
+  estEl.textContent = est.toFixed(1) + 'm';
 
-  updateDots(pct, { ...smoothImpulse });
+  // Update trajectory dots
+  showDots(pct, {...smoothImp});
 }
 
-function onTouchEnd(cx, cy) {
+function dragEnd(cx, cy) {
   if (!isDragging) return;
   isDragging = false;
-  const dy  = touchStartY - cy;
-  const dur = performance.now() - touchStartT;
+  const dY  = startY - cy;
+  const dur = performance.now() - startT;
 
-  if (dy > 25 && dur < 600 && bState === 'IDLE') {
-    bVel  = { ...smoothImpulse };
-    bAngV = { x: (Math.random()-0.5)*14, y:(Math.random()-0.5)*8, z: smoothImpulse.x * -1.5 };
-    bState = 'FLYING';
-    vibrate(15);
+  if (dY > 28 && dur < 580 && bstate === 'IDLE') {
+    bv  = { ...smoothImp };
+    bav = { x:(Math.random()-0.5)*15, y:(Math.random()-0.5)*9, z:smoothImp.x*-1.6 };
+    bstate = 'FLYING';
+    vib(12);
   }
 
-  dots.forEach(d => d.visible = false);
-  setTimeout(() => eHud.classList.remove('show'), 1400);
+  dotPool.forEach(d => d.visible = false);
+  setTimeout(() => meterEl.classList.remove('show'), 1300);
 }
 
-// Mouse support for desktop testing
+// Attach events
 const cvs = renderer.domElement;
-cvs.addEventListener('mousedown',  e => onTouchStart(e.clientX, e.clientY));
-window.addEventListener('mousemove', e => { if (isDragging) onTouchMove(e.clientX, e.clientY); });
-window.addEventListener('mouseup',   e => onTouchEnd(e.clientX, e.clientY));
+cvs.addEventListener('mousedown',  e => dragStart(e.clientX, e.clientY));
+window.addEventListener('mousemove',e => dragMove(e.clientX, e.clientY));
+window.addEventListener('mouseup',  e => dragEnd(e.clientX, e.clientY));
+cvs.addEventListener('touchstart', e => { if(e.touches.length===1) dragStart(e.touches[0].clientX,e.touches[0].clientY); }, {passive:true});
+window.addEventListener('touchmove',e => { if(e.touches.length===1) dragMove(e.touches[0].clientX,e.touches[0].clientY); }, {passive:true});
+window.addEventListener('touchend', e => { if(e.changedTouches.length) dragEnd(e.changedTouches[0].clientX,e.changedTouches[0].clientY); }, {passive:true});
 
-cvs.addEventListener('touchstart', e => {
-  if (e.touches.length === 1) onTouchStart(e.touches[0].clientX, e.touches[0].clientY);
-}, { passive: true });
-window.addEventListener('touchmove', e => {
-  if (e.touches.length === 1) onTouchMove(e.touches[0].clientX, e.touches[0].clientY);
-}, { passive: true });
-window.addEventListener('touchend', e => {
-  if (e.changedTouches.length > 0) onTouchEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-}, { passive: true });
+// ═══════════════════════════════════════════════════════════════════════════
+// TRAJECTORY DOTS
+// ═══════════════════════════════════════════════════════════════════════════
+function showDots(pct, imp) {
+  if (pct < 4 || bstate !== 'IDLE') { dotPool.forEach(d=>d.visible=false); return; }
 
-// ─── TRAJECTORY DOTS ─────────────────────────────────────────────────────────
-function updateDots(pct, imp) {
-  if (pct < 3) { dots.forEach(d => d.visible = false); return; }
+  let px=bp.x, py=bp.y, pz=bp.z;
+  let vx=imp.x, vy=imp.y, vz=imp.z;
+  const step=0.036;
 
-  let px = bPos.x, py = bPos.y, pz = bPos.z;
-  let vx = imp.x,  vy = imp.y,  vz = imp.z;
-  const step = 0.04, drag = 0.10;
+  for (let i=0; i<NUM_DOTS; i++) {
+    vy -= 9.81*step;
+    const df = 1 - 0.11*step;
+    vx*=df; vy*=df; vz*=df;
+    px+=vx*step; py+=vy*step; pz+=vz*step;
 
-  for (let i = 0; i < NUM_DOTS; i++) {
-    vy -= 9.81 * step;
-    const df = 1 - drag * step;
-    vx *= df; vy *= df; vz *= df;
-    px += vx * step; py += vy * step; pz += vz * step;
+    dotPool[i].visible = true;
+    dotPool[i].position.set(px,py,pz);
+    const s = 1 - (i/NUM_DOTS)*0.55;
+    dotPool[i].scale.setScalar(s);
 
-    dots[i].visible = true;
-    dots[i].position.set(px, py, pz);
-    const s = 1 - (i / NUM_DOTS) * 0.5;
-    dots[i].scale.setScalar(s);
-
-    // Color hint based on proximity to bin
-    const dx = px - binX, dz = pz - (-binZ);
-    const d2 = Math.sqrt(dx*dx + dz*dz);
-    dots[i].material.color.setHex(d2 < BIN_RIM_R ? 0x10b981 : 0x38bdf8);
+    // Color feedback: green if aligned with bin
+    const dx=px-binX, dz=pz-(-binZ);
+    const d2=Math.sqrt(dx*dx+dz*dz);
+    dotPool[i].material.color.setHex(
+      d2 < BIN_RIM_R - 0.04 ? 0x30d158 :
+      d2 < BIN_RIM_R + 0.08 ? 0xff9f0a :
+      0x0a84ff
+    );
+    dotPool[i].material.opacity = 0.9 - (i/NUM_DOTS)*0.4;
   }
 }
 
-// ─── UI BUTTONS ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// CONFETTI  (canvas 2D burst on score)
+// ═══════════════════════════════════════════════════════════════════════════
+const confCanvas = document.getElementById('confetti');
+const confCtx    = confCanvas.getContext('2d');
+confCanvas.width  = innerWidth;
+confCanvas.height = innerHeight;
+let confParticles = [];
+
+const CONF_COLORS = ['#0a84ff','#30d158','#ff9f0a','#ff453a','#bf5af2','#ffffff'];
+
+function burstConfetti(wx, wy, wz) {
+  // Project 3D point to 2D screen for confetti origin
+  const v = new THREE.Vector3(wx, wy, wz);
+  v.project(camera);
+  const sx = (v.x+1)/2 * innerWidth;
+  const sy = (1-v.y)/2 * innerHeight;
+
+  for (let i = 0; i < 55; i++) {
+    confParticles.push({
+      x: sx, y: sy,
+      vx: (Math.random()-0.5)*7,
+      vy: -(Math.random()*6+2),
+      size: Math.random()*5+3,
+      color: CONF_COLORS[Math.floor(Math.random()*CONF_COLORS.length)],
+      life: 1.0,
+      decay: 0.018 + Math.random()*0.014,
+      rot: Math.random()*Math.PI*2,
+      rotV: (Math.random()-0.5)*0.3,
+    });
+  }
+}
+
+function tickConfetti(dt) {
+  if (!confParticles.length) return;
+  confCtx.clearRect(0,0,confCanvas.width,confCanvas.height);
+  confParticles = confParticles.filter(p => p.life > 0);
+  confParticles.forEach(p => {
+    p.vy += 12 * dt;
+    p.x  += p.vx * dt * 60;
+    p.y  += p.vy * dt * 60;
+    p.rot += p.rotV;
+    p.life -= p.decay;
+    confCtx.save();
+    confCtx.globalAlpha = Math.max(0, p.life);
+    confCtx.translate(p.x, p.y);
+    confCtx.rotate(p.rot);
+    confCtx.fillStyle = p.color;
+    confCtx.fillRect(-p.size/2, -p.size/2, p.size, p.size * 0.5);
+    confCtx.restore();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BUTTON HANDLERS
+// ═══════════════════════════════════════════════════════════════════════════
 document.getElementById('btn-reset').addEventListener('click', () => {
-  score = 0; streak = 0;
-  document.getElementById('score').textContent = '0';
-  updateStreak();
+  score=0; streak=0; updateHUD();
   placeBin(); resetBall();
-  showPop('RESET!', 'miss');
-  vibrate(20);
+  showPop('RESET', 'miss'); vib(25);
 });
 
-let muted = false;
 document.getElementById('btn-audio').addEventListener('click', () => {
   muted = !muted;
   document.getElementById('btn-audio').textContent = muted ? '🔇' : '🔊';
+  vib(10);
 });
 
-// ─── RESIZE ──────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// RESIZE
+// ═══════════════════════════════════════════════════════════════════════════
 window.addEventListener('resize', () => {
-  renderer.setSize(W(), H());
-  setupCamera();
+  renderer.setSize(innerWidth, innerHeight);
+  confCanvas.width = innerWidth; confCanvas.height = innerHeight;
+  positionCamera();
 });
 window.addEventListener('orientationchange', () => {
-  setTimeout(() => { renderer.setSize(W(), H()); setupCamera(); }, 200);
+  setTimeout(() => {
+    renderer.setSize(innerWidth, innerHeight);
+    confCanvas.width = innerWidth; confCanvas.height = innerHeight;
+    positionCamera();
+  }, 180);
 });
 
-// ─── RENDER LOOP ─────────────────────────────────────────────────────────────
-let last = 0;
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDER LOOP
+// ═══════════════════════════════════════════════════════════════════════════
+let lastT = 0;
 function loop(ts) {
   requestAnimationFrame(loop);
-  const dt = Math.min((ts - last) / 1000, 0.05);
-  last = ts;
+  const dt = Math.min((ts - lastT) / 1000, 0.05);
+  lastT = ts;
 
-  physicsUpdate(dt);
+  // Physics
+  physicsTick(dt);
 
   // Sync ball mesh
-  ball.position.set(bPos.x, bPos.y, bPos.z);
-  ball.rotation.set(bRot.x, bRot.y, bRot.z);
+  ball.position.set(bp.x, bp.y, bp.z);
+  ball.rotation.set(br.x, br.y, br.z);
 
-  // Ball shadow
-  ballShadow.position.x = bPos.x;
-  ballShadow.position.z = bPos.z;
-  const heightAboveFloor = bPos.y - FLOOR_Y;
-  ballShadow.material.opacity = Math.max(0, 0.28 - heightAboveFloor * 0.06);
-  const ss = Math.max(0.3, 1.0 - heightAboveFloor * 0.08);
-  ballShadow.scale.set(ss, ss, ss);
+  // Ball floor shadow
+  bShadowMesh.position.set(bp.x, FLOOR_Y + 0.005, bp.z);
+  const heightAbove = bp.y - FLOOR_Y;
+  bShadowMesh.material.opacity = Math.max(0, 0.22 - heightAbove*0.05);
+  const ss = Math.max(0.2, 1.0 - heightAbove*0.09);
+  bShadowMesh.scale.set(ss, ss, ss);
 
-  // Gentle camera yaw toward bin
-  const targetLookX = binX * 0.08;
-  camera.lookAt(targetLookX, 0, -6);
+  // Smooth camera yaw follow
+  camYaw += (camYawTarget - camYaw) * Math.min(1, dt * 3.5);
+  camera.lookAt(camYaw * 2.5, -0.1, -5.5);
+
+  // Subtle bin rim glow pulse
+  const pulse = 0.8 + Math.sin(ts * 0.003) * 0.2;
+  rimMesh.material.emissive && rimMesh.material.emissive.setScalar(0);
+  // (LambertMaterial doesn't have emissive; rim visual is handled by lighting)
+
+  // Confetti
+  tickConfetti(dt);
 
   renderer.render(scene, camera);
 }
