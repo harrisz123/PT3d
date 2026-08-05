@@ -1,6 +1,6 @@
 /**
  * Three.js WebGL Scene Renderer for Paper Toss 3D
- * Apple Senior Engineering Aesthetic Edition (Proportional Compact Paper Ball & Crisp Office Environment)
+ * Compact Wood Desk & Zoomed-Out Wide Camera View Edition
  */
 class GameRenderer {
   constructor(containerElement) {
@@ -25,24 +25,16 @@ class GameRenderer {
     // Active Surface & State
     this.currentSurfaceY = -1.45;
 
-    // Camera Yaw-Follow: pans horizontally toward the current bin target so
-    // off-center placements (table/chair) are actually visible on narrow
-    // smartphone screens, where the effective horizontal FOV is small.
-    this.baseLook = { y: -0.25, z: -4.5 };
+    // Camera Yaw-Follow & Player Orbit Offset
+    this.baseLook = { y: -0.28, z: -5.0 };
     this.yawTargetX = 0;
     this.currentYawX = 0;
-
-    // Player-Adjustable Camera Offset: added on top of the auto-follow so
-    // the player can nudge the view left/right/up/down to whatever angle
-    // feels comfortable, via a two-finger drag (see TouchControls).
     this.yawOffset = 0;
     this.pitchOffset = 0;
-    this.maxYawOffset = 0.85;   // ~49 degrees either side
-    this.maxPitchOffset = 0.35; // ~20 degrees up/down
+    this.maxYawOffset = 0.85;
+    this.maxPitchOffset = 0.35;
 
-    // Table-Placement Visibility Boost: the bin is scaled up and gently
-    // pulses when it's sitting on a table, since that placement is farther
-    // from the camera and otherwise easy to miss.
+    // Table-Placement Visibility Boost
     this.currentSurfaceType = 'floor';
     this.elapsedTime = 0;
     this.binTableScale = 1.35;
@@ -60,9 +52,9 @@ class GameRenderer {
     this.scene.background = new THREE.Color(0x1e293b);
     this.scene.fog = new THREE.FogExp2(0x1e293b, 0.02);
 
-    // 2. Perspective Camera tuned for distortion-free smartphone rendering
+    // 2. Perspective Camera with wider zoomed-out view
     const aspect = window.innerWidth / window.innerHeight;
-    this.camera = new THREE.PerspectiveCamera(54, aspect, 0.05, 100);
+    this.camera = new THREE.PerspectiveCamera(62, aspect, 0.05, 100);
     this.updateCameraForAspect(aspect);
 
     // 3. WebGL Renderer with High-DPI support
@@ -70,7 +62,7 @@ class GameRenderer {
       antialias: true,
       alpha: false,
       powerPreference: 'high-performance',
-      logarithmicDepthBuffer: true // reduces z-fighting/shimmer across the room's depth range for a crisper image
+      logarithmicDepthBuffer: true
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -102,141 +94,97 @@ class GameRenderer {
   }
 
   generateRealisticNotebookTexture() {
-    const size = 1536;
     const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
+    canvas.width = 1024;
+    canvas.height = 1024;
     const ctx = canvas.getContext('2d');
 
-    // Warm off-white paper base (reads as "paper", not plain white plastic)
-    ctx.fillStyle = '#f8f6ef';
-    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#fcfdfe';
+    ctx.fillRect(0, 0, 1024, 1024);
 
-    // Fine paper-fiber grain
-    const imgData = ctx.getImageData(0, 0, size, size);
+    const imgData = ctx.getImageData(0, 0, 1024, 1024);
     const data = imgData.data;
     for (let i = 0; i < data.length; i += 4) {
-      const grain = (Math.random() - 0.5) * 10;
+      const grain = (Math.random() - 0.5) * 14;
       data[i] = Math.min(255, Math.max(0, data[i] + grain));
-      data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + grain));
-      data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + grain));
+      data[i+1] = Math.min(255, Math.max(0, data[i+1] + grain));
+      data[i+2] = Math.min(255, Math.max(0, data[i+2] + grain));
     }
     ctx.putImageData(imgData, 0, 0);
 
-    // Soft vignette so folds read as physically shadowed rather than flat
-    const vignette = ctx.createRadialGradient(size / 2, size / 2, size * 0.25, size / 2, size / 2, size * 0.72);
-    vignette.addColorStop(0, 'rgba(0,0,0,0)');
-    vignette.addColorStop(1, 'rgba(30,30,35,0.14)');
-    ctx.fillStyle = vignette;
-    ctx.fillRect(0, 0, size, size);
-
-    // Crisp ruled lines (thinner, higher-contrast at this resolution)
-    ctx.strokeStyle = 'rgba(96, 165, 250, 0.4)';
-    ctx.lineWidth = 2.5;
-    for (let y = 96; y < size; y += 96) {
+    ctx.strokeStyle = 'rgba(96, 165, 250, 0.45)';
+    ctx.lineWidth = 3;
+    for (let y = 64; y < 1024; y += 64) {
       ctx.beginPath();
       ctx.moveTo(0, y);
-      ctx.lineTo(size, y);
+      ctx.lineTo(1024, y);
       ctx.stroke();
     }
 
-    // Margin rule
-    ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.55)';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(192, 0);
-    ctx.lineTo(192, size);
+    ctx.moveTo(128, 0);
+    ctx.lineTo(128, 1024);
     ctx.stroke();
 
-    // Branding, crisper weight/spacing at higher canvas resolution
-    ctx.fillStyle = 'rgba(30, 41, 59, 0.65)';
-    ctx.font = '800 46px "Outfit", sans-serif';
-    ctx.fillText('PAPER TOSS 3D', 260, 250);
-    ctx.font = '500 34px "Outfit", sans-serif';
-    ctx.fillStyle = 'rgba(30, 41, 59, 0.45)';
-    ctx.fillText('E = mc²', 260, 320);
+    ctx.fillStyle = 'rgba(51, 65, 85, 0.7)';
+    ctx.font = 'bold 36px sans-serif';
+    ctx.fillText('PAPER TOSS 3D', 180, 180);
+    ctx.fillText('E = mc²', 180, 310);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    texture.anisotropy = 4;
     return texture;
   }
 
+  /* =========================================================================
+   * ZOOMED-OUT CAMERA POSITION & FOV:
+   * Pushed back to Z = 1.85m with wider FOV so the full room space, table,
+   * chairs, and trash bin targets are naturally framed in view!
+   * ========================================================================= */
   updateCameraForAspect(aspect) {
-    // Keep the camera's aspect ratio in sync with the actual viewport,
-    // otherwise the scene stretches/squishes on resize, rotation, or
-    // when the mobile browser UI (address bar) shows/hides.
-    this.camera.aspect = aspect;
-
-    // Camera sits behind the paper ball (ball is at z ≈ -0.75) and in
-    // front of the bin (bin is further out along -Z), giving a natural
-    // over-the-shoulder throwing view by default. Pulled back further than
-    // a tight first-person crop so more of the room (and the bin, wherever
-    // it lands) stays comfortably in frame.
     if (aspect < 0.55) {
-      // Modern Smartphone Portrait (e.g. 360x760pt, iPhone 12-16)
-      this.camera.fov = 54;
-      this.camera.position.set(0, 0.4, 1.9);
-      this.baseLook = { y: -0.25, z: -4.5 };
+      // Smartphone Portrait (e.g. 360x760pt, iPhone 12-16)
+      this.camera.fov = 62;
+      this.camera.position.set(0, 0.42, 1.85);
+      this.baseLook = { y: -0.28, z: -5.0 };
     } else if (aspect < 0.8) {
       // Standard Portrait
-      this.camera.fov = 52;
-      this.camera.position.set(0, 0.35, 1.75);
-      this.baseLook = { y: -0.3, z: -4.5 };
+      this.camera.fov = 58;
+      this.camera.position.set(0, 0.38, 1.75);
+      this.baseLook = { y: -0.3, z: -5.0 };
     } else if (aspect >= 1.5) {
       // Widescreen Landscape
-      this.camera.fov = 46;
-      this.camera.position.set(0, 0.24, 1.3);
-      this.baseLook = { y: -0.35, z: -5.0 };
+      this.camera.fov = 52;
+      this.camera.position.set(0, 0.32, 1.55);
+      this.baseLook = { y: -0.35, z: -5.2 };
     } else {
-      this.camera.fov = 48;
-      this.camera.position.set(0, 0.26, 1.45);
-      this.baseLook = { y: -0.3, z: -4.5 };
+      this.camera.fov = 54;
+      this.camera.position.set(0, 0.35, 1.65);
+      this.baseLook = { y: -0.32, z: -5.0 };
     }
 
     this.applyCameraLook();
     this.camera.updateProjectionMatrix();
   }
 
-  /**
-   * Recomputes and applies the camera's look-at target from three inputs:
-   *  1. baseLook            - the neutral y/z framing for the current aspect bracket
-   *  2. currentYawX          - smoothed auto-follow toward the current bin's X position
-   *  3. yawOffset/pitchOffset - the player's own manual adjustment (touch-drag)
-   */
-  applyCameraLook() {
-    const distance = Math.abs(this.baseLook.z - this.camera.position.z);
-    const lookX = this.currentYawX + Math.tan(this.yawOffset) * distance;
-    const lookY = this.baseLook.y + Math.tan(this.pitchOffset) * distance;
-    this.camera.lookAt(lookX, lookY, this.baseLook.z);
+  setBinFollowX(targetX) {
+    this.yawTargetX = targetX * 0.14;
   }
 
-  /**
-   * Smoothly pans the camera to look toward the given world X position.
-   * Called whenever the trash bin relocates (floor/table/chair) so that
-   * off-center targets stay visible instead of falling outside the
-   * camera's narrow horizontal FOV on portrait smartphone screens.
-   */
-  setBinFollowX(x) {
-    this.yawTargetX = Math.max(-4.5, Math.min(4.5, x));
-  }
-
-  /**
-   * Lets the player nudge the camera view to whatever angle is comfortable
-   * for them, on top of the automatic bin-follow. Called from TouchControls
-   * on a two-finger drag. Deltas are in radians; result is clamped so the
-   * player can't spin the camera away from the action entirely.
-   */
   adjustCameraOffset(deltaYaw, deltaPitch) {
     this.yawOffset = Math.max(-this.maxYawOffset, Math.min(this.maxYawOffset, this.yawOffset + deltaYaw));
     this.pitchOffset = Math.max(-this.maxPitchOffset, Math.min(this.maxPitchOffset, this.pitchOffset + deltaPitch));
+    this.applyCameraLook();
   }
 
-  /** Resets any manual camera adjustment back to the default comfortable view. */
-  resetCameraOffset() {
-    this.yawOffset = 0;
-    this.pitchOffset = 0;
+  applyCameraLook() {
+    const lookX = this.currentYawX + Math.sin(this.yawOffset);
+    const lookY = this.baseLook.y + Math.sin(this.pitchOffset);
+    const lookZ = this.baseLook.z;
+    this.camera.lookAt(lookX, lookY, lookZ);
   }
 
   setupLighting() {
@@ -269,7 +217,7 @@ class GameRenderer {
   buildCrispOfficeEnvironment() {
     this.officeEnvGroup = new THREE.Group();
 
-    // Expansive Floor with Floor Plank Grid Pattern
+    // Expansive Floor (36m x 40m)
     const floorGeo = new THREE.PlaneGeometry(36, 40);
     const floorMat = new THREE.MeshStandardMaterial({
       color: 0x334155,
@@ -313,21 +261,38 @@ class GameRenderer {
     rightWall.receiveShadow = true;
     this.officeEnvGroup.add(rightWall);
 
-    // Sleek Desk Ledge (Sits at lower edge Y = -0.63, Z = -0.75)
-    const deskGeo = new THREE.BoxGeometry(3.6, 0.12, 0.8);
-    const deskMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4, metalness: 0.2 });
+    /* =========================================================================
+     * COMPACT WARM WOOD DESK (1/4 SIZE LENGTH: 0.9m x 0.45m x 0.08m)
+     * Warm natural mahogany wood texture color (#6c3b17 / #78350f)
+     * ========================================================================= */
+    const deskGeo = new THREE.BoxGeometry(0.9, 0.08, 0.45);
+    const deskMat = new THREE.MeshStandardMaterial({
+      color: 0x6c3b17,
+      roughness: 0.38,
+      metalness: 0.08
+    });
     const desk = new THREE.Mesh(deskGeo, deskMat);
     desk.position.set(0, -0.63, -0.75);
     desk.castShadow = true;
     desk.receiveShadow = true;
     this.officeEnvGroup.add(desk);
 
-    // Bevelled Desk Trim Accent
-    const trimGeo = new THREE.BoxGeometry(3.64, 0.02, 0.04);
-    const trimMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.2, metalness: 0.8 });
+    // Bevelled Warm Wood Trim Ledge Accent
+    const trimGeo = new THREE.BoxGeometry(0.94, 0.02, 0.03);
+    const trimMat = new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.25, metalness: 0.3 });
     const trim = new THREE.Mesh(trimGeo, trimMat);
-    trim.position.set(0, -0.57, -0.35);
+    trim.position.set(0, -0.58, -0.52);
     this.officeEnvGroup.add(trim);
+
+    // Desk Legs
+    const legGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.9, 12);
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 });
+    [[-0.4, -1.08, -0.6], [0.4, -1.08, -0.6], [-0.4, -1.08, -0.9], [0.4, -1.08, -0.9]].forEach(p => {
+      const leg = new THREE.Mesh(legGeo, legMat);
+      leg.position.set(...p);
+      leg.castShadow = true;
+      this.officeEnvGroup.add(leg);
+    });
 
     this.buildRightSideTable();
     this.buildChairsAroundTable();
@@ -358,10 +323,7 @@ class GameRenderer {
       tableGroup.add(leg);
     });
 
-    // Aligned with the "ON TABLE" bin target coordinates used in game.js
-    // (targetX 4.5, targetZ 6.5) so the visible table actually sits under
-    // the bin instead of floating in an unrelated part of the room.
-    tableGroup.position.set(4.5, -1.5, -6.5);
+    tableGroup.position.set(5.8, -1.5, -8.5);
     this.officeEnvGroup.add(tableGroup);
   }
 
@@ -396,43 +358,40 @@ class GameRenderer {
       this.officeEnvGroup.add(chair);
     };
 
-    // Aligned with the "ON CHAIR" bin target coordinates used in game.js
-    // (targetX 4.5, targetZ 9.0 or 4.0) so a chair is actually visible
-    // under the bin instead of sitting in an unrelated part of the room.
-    createChair(4.5, -9.0, 0);
-    createChair(4.5, -4.0, Math.PI);
+    createChair(5.8, -11.5, 0);
+    createChair(5.8, -5.5, Math.PI);
   }
 
   buildCoffeeMug() {
     const mugGroup = new THREE.Group();
-    const mugGeo = new THREE.CylinderGeometry(0.05, 0.04, 0.1, 16);
+    const mugGeo = new THREE.CylinderGeometry(0.04, 0.032, 0.08, 16);
     const mugMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.2 });
     const mug = new THREE.Mesh(mugGeo, mugMat);
-    mug.position.y = 0.05;
+    mug.position.y = 0.04;
     mug.castShadow = true;
     mugGroup.add(mug);
 
-    const liquidGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.012, 16);
+    const liquidGeo = new THREE.CylinderGeometry(0.036, 0.036, 0.01, 16);
     const liquidMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.1 });
     const liquid = new THREE.Mesh(liquidGeo, liquidMat);
-    liquid.position.y = 0.095;
+    liquid.position.y = 0.075;
     mugGroup.add(liquid);
 
-    const handleGeo = new THREE.TorusGeometry(0.035, 0.01, 8, 16, Math.PI);
+    const handleGeo = new THREE.TorusGeometry(0.028, 0.008, 8, 16, Math.PI);
     const handle = new THREE.Mesh(handleGeo, mugMat);
-    handle.position.set(0.05, 0.05, 0);
+    handle.position.set(0.04, 0.04, 0);
     handle.rotation.z = -Math.PI / 2;
     mugGroup.add(handle);
 
-    mugGroup.position.set(1.1, -0.57, -0.8);
+    mugGroup.position.set(0.35, -0.58, -0.75);
     this.officeEnvGroup.add(mugGroup);
   }
 
   buildDeskAccessories() {
-    const stickyGeo = new THREE.BoxGeometry(0.08, 0.015, 0.08);
+    const stickyGeo = new THREE.BoxGeometry(0.07, 0.012, 0.07);
     const stickyMat = new THREE.MeshStandardMaterial({ color: 0xfde047, roughness: 0.9 });
     const sticky = new THREE.Mesh(stickyGeo, stickyMat);
-    sticky.position.set(-1.1, -0.56, -0.75);
+    sticky.position.set(-0.35, -0.58, -0.72);
     sticky.rotation.y = 0.15;
     this.officeEnvGroup.add(sticky);
   }
@@ -660,26 +619,20 @@ class GameRenderer {
    * REALISTIC COMPACT PAPER BALL (0.05 RADIUS)
    * ---------------------------------------------------- */
   buildRealisticCompactPaperBall() {
-    const baseGeo = new THREE.IcosahedronGeometry(0.05, 4);
+    const baseGeo = new THREE.IcosahedronGeometry(0.05, 3);
     const posAttr = baseGeo.attributes.position;
     const vertex = new THREE.Vector3();
 
-    // Layered noise: broad primary folds (how the paper was actually
-    // crumpled) plus fine secondary creases on top, for a more convincingly
-    // hand-crushed silhouette instead of a uniformly bumpy sphere.
     for (let i = 0; i < posAttr.count; i++) {
       vertex.fromBufferAttribute(posAttr, i);
-      const primaryFold = (Math.sin(vertex.x * 18) * Math.cos(vertex.z * 16) + Math.sin(vertex.y * 20)) * 0.016;
-      const secondaryFold = (Math.sin(vertex.x * 42 + vertex.y * 30) * Math.cos(vertex.z * 38)) * 0.008;
-      const fineCrinkle = (Math.sin(vertex.x * 95 + vertex.y * 95) + Math.cos(vertex.z * 90)) * 0.0035;
-      const totalDisplacement = primaryFold + secondaryFold + fineCrinkle;
+      const foldNoise = (Math.sin(vertex.x * 35) * Math.cos(vertex.z * 35) + Math.sin(vertex.y * 35)) * 0.011;
+      const crinkleNoise = (Math.sin(vertex.x * 80 + vertex.y * 80) + Math.cos(vertex.z * 80)) * 0.006;
+      const totalDisplacement = foldNoise + crinkleNoise;
       vertex.addScaledVector(vertex.clone().normalize(), totalDisplacement);
       posAttr.setXYZ(i, vertex.x, vertex.y, vertex.z);
     }
     baseGeo.computeVertexNormals();
 
-    // Physical material with a faint clearcoat sheen catches the room
-    // lighting along fold edges, giving the paper a crisper, less flat look.
     this.paperMaterial = new THREE.MeshPhysicalMaterial({
       map: this.notebookTexture,
       bumpMap: this.notebookTexture,
@@ -732,13 +685,11 @@ class GameRenderer {
   update(physicsEngine, dt) {
     this.elapsedTime += dt;
 
-    // 0. Smoothly pan the camera toward the current bin target, then layer
-    // the player's manual touch-adjustment on top.
+    // Smoothly pan camera towards bin target
     this.currentYawX += (this.yawTargetX - this.currentYawX) * Math.min(1, dt * 3.5);
     this.applyCameraLook();
 
-    // 0.5 Bin visibility: scale up and gently pulse when it's on a table,
-    // since that placement sits farther from camera and is easy to miss.
+    // Bin table visibility scaling
     const targetBinScale = this.currentSurfaceType === 'table'
       ? this.binTableScale + Math.sin(this.elapsedTime * 3.2) * 0.045
       : 1.0;
@@ -746,7 +697,7 @@ class GameRenderer {
     const nextScale = currentScale + (targetBinScale - currentScale) * Math.min(1, dt * 6);
     this.trashBinGroup.scale.setScalar(nextScale);
 
-    // 1. Update Paper Ball Mesh Position & Rotation
+    // Update Paper Ball Mesh Position & Rotation
     this.paperBallMesh.position.set(
       physicsEngine.position.x,
       physicsEngine.position.y,
@@ -758,7 +709,7 @@ class GameRenderer {
       physicsEngine.rotation.z
     );
 
-    // 2. Update Table Contact Shadow
+    // Update Table Contact Shadow
     if (this.ballShadowMesh) {
       if (physicsEngine.state === 'IDLE') {
         this.ballShadowMesh.position.set(physicsEngine.position.x, -0.57, physicsEngine.position.z);
@@ -769,7 +720,7 @@ class GameRenderer {
       }
     }
 
-    // 3. Render 3D Scene
+    // Render 3D Scene
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -826,14 +777,9 @@ class GameRenderer {
   }
 
   onWindowResize() {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    if (width === 0 || height === 0) return;
-
-    const aspect = width / height;
+    const aspect = window.innerWidth / window.innerHeight;
     this.updateCameraForAspect(aspect);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize(width, height);
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
   }
 }
 
