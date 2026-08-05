@@ -1,6 +1,6 @@
 /**
  * Core Game Controller & State Manager for Paper Toss 3D
- * Expansive Office Room Placement Edition (Synchronized Table, Chair, and Expansive Floor Space)
+ * Classic Office Corridor Edition (Hallway Target Placement System)
  */
 class PaperTossGame {
   constructor() {
@@ -10,9 +10,9 @@ class PaperTossGame {
     this.streak = 0;
     this.currentModeKey = 'random'; // SHUFFLE is the default and only mode!
 
-    // Mode Distance Ranges (Expansive Room Space: Z up to 16.0m, X up to +/-6.5m)
+    // Mode Distance Ranges (Corridor Placement: Z up to 16.0m, X up to +/-1.1m)
     this.modes = {
-      random: { name: 'Wild Shuffle', minZ: 3.0, maxZ: 16.0, minX: -6.5, maxX: 6.5 }
+      random: { name: 'Wild Shuffle', minZ: 3.5, maxZ: 16.0, minX: -1.1, maxX: 1.1 }
     };
 
     this.currentBinX = 0;
@@ -128,11 +128,11 @@ class PaperTossGame {
   }
 
   /* =========================================================================
-   * EXPANSIVE BIN REPOSITIONING SYSTEM:
-   * Placed dynamically across the expanded 36m x 40m room space:
-   * - 25% Chance: Sitting flush ON TABLE TOP (X = 5.8m, Z = 8.5m, Y = -0.5m)
-   * - 15% Chance: Sitting flush ON CHAIR SEAT (X = 5.8m, Z = 11.5m / 5.5m, Y = -1.0m)
-   * - 60% Chance: Floor placement across expansive room area (Z = 3.0m - 16.0m, X = -6.5m - 6.5m)
+   * OFFICE CORRIDOR BIN REPOSITIONING SYSTEM:
+   * Placed dynamically down the office hallway:
+   * - 25% Chance: Sitting flush ON SIDE TABLE (X = 1.3m, Z = 8.5m, Y = -0.5m)
+   * - 15% Chance: Sitting flush ON CHAIR SEAT (X = 1.3m, Z = 11.5m / 5.5m, Y = -1.0m)
+   * - 60% Chance: Corridor floor placement (Z = 3.5m - 16.0m, X = -1.1m - 1.1m)
    * ========================================================================= */
   repositionBin() {
     const config = this.modes.random;
@@ -140,21 +140,21 @@ class PaperTossGame {
 
     let targetX, targetZ, surfaceY, surfaceType;
 
-    // 25% Chance to place bin ON TABLE TOP (X = 5.8m, Z = 8.5m)
+    // 25% Chance to place bin ON SIDE TABLE (X = 1.3m, Z = 8.5m)
     if (rand < 0.25) {
-      targetX = 5.8;
+      targetX = 1.3;
       targetZ = 8.5;
       surfaceY = -0.5; // Table top surface height
       surfaceType = 'table';
     } 
-    // 15% Chance to place bin ON CHAIR SEAT (X = 5.8m, Z = 11.5m or 5.5m)
+    // 15% Chance to place bin ON CHAIR SEAT (X = 1.3m, Z = 11.5m or 5.5m)
     else if (rand >= 0.25 && rand < 0.40) {
-      targetX = 5.8;
+      targetX = 1.3;
       targetZ = Math.random() > 0.5 ? 11.5 : 5.5;
       surfaceY = -1.0; // Chair seat height
       surfaceType = 'chair';
     } 
-    // 60% Chance to place bin ON EXPANSIVE FLOOR AREA
+    // 60% Chance to place bin ON CORRIDOR FLOOR AREA
     else {
       targetZ = config.minZ + Math.random() * (config.maxZ - config.minZ);
       targetX = config.minX + Math.random() * (config.maxX - config.minX);
@@ -168,7 +168,7 @@ class PaperTossGame {
     this.currentSurfaceType = surfaceType;
 
     this.physics.setBinPosition(this.currentBinX, this.currentBinZ, surfaceY, surfaceType);
-    this.renderer.updateTrashBinPosition(this.currentBinX, this.currentBinZ, surfaceY, 'office', surfaceType);
+    this.renderer.updateTrashBinPosition(this.currentBinX, this.currentBinZ, surfaceY, 'corridor', surfaceType);
 
     this.updateTargetUI();
   }
@@ -186,7 +186,7 @@ class PaperTossGame {
         offsetStr = 'ON CHAIR';
       } else {
         const offX = this.currentBinX;
-        if (Math.abs(offX) < 0.3) {
+        if (Math.abs(offX) < 0.2) {
           offsetStr = 'CENTER';
         } else if (offX < 0) {
           offsetStr = `LEFT (${Math.abs(offX).toFixed(1)}m)`;
@@ -308,7 +308,7 @@ class PaperTossGame {
       this.renderer.update(this.physics, dt);
     }
 
-    requestAnimationFrame((t) => this loop(t));
+    requestAnimationFrame((t) => this.loop(t));
   }
 }
 

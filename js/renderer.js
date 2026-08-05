@@ -1,6 +1,7 @@
 /**
  * Three.js WebGL Scene Renderer for Paper Toss 3D
- * Compact Wood Desk & Zoomed-Out Wide Camera View Edition
+ * Classic Office Corridor / Hallway Environment Edition
+ * Optimized specifically for 19.5:9 & 20:9 Portrait Smartphone Displays
  */
 class GameRenderer {
   constructor(containerElement) {
@@ -14,7 +15,7 @@ class GameRenderer {
     this.ballShadowMesh = null;
     this.trashBinGroup = null;
     this.binFloorShadow = null;
-    this.officeEnvGroup = null;
+    this.corridorEnvGroup = null;
 
     // Trajectory Arc Guide System
     this.trajectoryGroup = null;
@@ -31,7 +32,7 @@ class GameRenderer {
     this.currentYawX = 0;
     this.yawOffset = 0;
     this.pitchOffset = 0;
-    this.maxYawOffset = 0.85;
+    this.maxYawOffset = 0.65;
     this.maxPitchOffset = 0.35;
 
     // Table-Placement Visibility Boost
@@ -49,15 +50,15 @@ class GameRenderer {
   init() {
     // 1. Scene setup
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x1e293b);
-    this.scene.fog = new THREE.FogExp2(0x1e293b, 0.02);
+    this.scene.background = new THREE.Color(0x0f172a);
+    this.scene.fog = new THREE.FogExp2(0x0f172a, 0.024);
 
-    // 2. Perspective Camera with wider zoomed-out view
+    // 2. Perspective Camera tuned for Office Corridor Portrait framing
     const aspect = window.innerWidth / window.innerHeight;
-    this.camera = new THREE.PerspectiveCamera(62, aspect, 0.05, 100);
+    this.camera = new THREE.PerspectiveCamera(58, aspect, 0.05, 100);
     this.updateCameraForAspect(aspect);
 
-    // 3. WebGL Renderer with High-DPI support
+    // 3. WebGL Renderer with High-DPI & Logarithmic Depth support
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: false,
@@ -70,7 +71,7 @@ class GameRenderer {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputEncoding = THREE.sRGBEncoding;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.08;
+    this.renderer.toneMappingExposure = 1.1;
 
     this.container.appendChild(this.renderer.domElement);
 
@@ -80,8 +81,8 @@ class GameRenderer {
     // 5. Lighting System
     this.setupLighting();
 
-    // 6. Build Scene Objects
-    this.buildCrispOfficeEnvironment();
+    // 6. Build Office Corridor Scene Objects
+    this.buildOfficeCorridorEnvironment();
     this.buildTrashBin();
     this.buildRealisticCompactPaperBall();
     this.buildParabolicTrajectoryGuide();
@@ -140,29 +141,29 @@ class GameRenderer {
   }
 
   /* =========================================================================
-   * ZOOMED-OUT CAMERA POSITION & FOV:
-   * Pushed back to Z = 1.85m with wider FOV so the full room space, table,
-   * chairs, and trash bin targets are naturally framed in view!
+   * CORRIDOR CAMERA CALIBRATION FOR PORTRAIT SMARTPHONE SCREENS:
+   * Frames the 4.0m wide hallway down its length, eliminating wide side gaps
+   * and fitting 100% of the game area within modern 19.5:9 / 20:9 screens!
    * ========================================================================= */
   updateCameraForAspect(aspect) {
     if (aspect < 0.55) {
       // Smartphone Portrait (e.g. 360x760pt, iPhone 12-16)
-      this.camera.fov = 62;
-      this.camera.position.set(0, 0.42, 1.85);
+      this.camera.fov = 58;
+      this.camera.position.set(0, 0.38, 1.85);
       this.baseLook = { y: -0.28, z: -5.0 };
     } else if (aspect < 0.8) {
       // Standard Portrait
-      this.camera.fov = 58;
-      this.camera.position.set(0, 0.38, 1.75);
+      this.camera.fov = 54;
+      this.camera.position.set(0, 0.34, 1.75);
       this.baseLook = { y: -0.3, z: -5.0 };
     } else if (aspect >= 1.5) {
       // Widescreen Landscape
-      this.camera.fov = 52;
-      this.camera.position.set(0, 0.32, 1.55);
+      this.camera.fov = 48;
+      this.camera.position.set(0, 0.28, 1.55);
       this.baseLook = { y: -0.35, z: -5.2 };
     } else {
-      this.camera.fov = 54;
-      this.camera.position.set(0, 0.35, 1.65);
+      this.camera.fov = 50;
+      this.camera.position.set(0, 0.32, 1.65);
       this.baseLook = { y: -0.32, z: -5.0 };
     }
 
@@ -171,7 +172,7 @@ class GameRenderer {
   }
 
   setBinFollowX(targetX) {
-    this.yawTargetX = targetX * 0.14;
+    this.yawTargetX = targetX * 0.12;
   }
 
   adjustCameraOffset(deltaYaw, deltaPitch) {
@@ -188,84 +189,131 @@ class GameRenderer {
   }
 
   setupLighting() {
-    const ambientLight = new THREE.AmbientLight(0xfef3c7, 0.75);
+    // Ambient warmth
+    const ambientLight = new THREE.AmbientLight(0xfef3c7, 0.65);
     this.scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.45);
-    dirLight.position.set(4, 10, 4);
+    // Primary hallway directional light
+    const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.35);
+    dirLight.position.set(2, 8, 2);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 2048;
     dirLight.shadow.mapSize.height = 2048;
     dirLight.shadow.camera.near = 0.5;
     dirLight.shadow.camera.far = 35;
-    dirLight.shadow.camera.left = -14;
-    dirLight.shadow.camera.right = 14;
+    dirLight.shadow.camera.left = -6;
+    dirLight.shadow.camera.right = 6;
     dirLight.shadow.camera.top = 14;
     dirLight.shadow.camera.bottom = -6;
     dirLight.shadow.bias = -0.0003;
     dirLight.shadow.radius = 3;
     this.scene.add(dirLight);
 
-    const windowLight = new THREE.DirectionalLight(0x60a5fa, 0.6);
-    windowLight.position.set(-8, 5, -4);
-    this.scene.add(windowLight);
+    // Corridor accent lighting along the ceiling
+    const ceilingLight = new THREE.PointLight(0x38bdf8, 0.8, 18);
+    ceilingLight.position.set(0, 2.5, -8);
+    this.scene.add(ceilingLight);
   }
 
   /* =========================================================================
-   * CRISP 3D OFFICE ENVIRONMENT DESIGN SYSTEM
+   * CLASSIC 3D OFFICE CORRIDOR / HALLWAY DESIGN SYSTEM
+   * Width: 4.2m, Height: 4.5m, Depth: 32.0m
+   * Perfectly proportioned for tall narrow smartphone screens!
    * ========================================================================= */
-  buildCrispOfficeEnvironment() {
-    this.officeEnvGroup = new THREE.Group();
+  buildOfficeCorridorEnvironment() {
+    this.corridorEnvGroup = new THREE.Group();
 
-    // Expansive Floor (36m x 40m)
-    const floorGeo = new THREE.PlaneGeometry(36, 40);
+    // 1. Polished Corridor Floor (Width: 4.2m, Depth: 32m)
+    const floorGeo = new THREE.PlaneGeometry(4.2, 32);
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x334155,
-      roughness: 0.8,
-      metalness: 0.05
+      color: 0x1e293b,
+      roughness: 0.35,
+      metalness: 0.25
     });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
-    floor.position.set(0, -1.5, -12);
+    floor.position.set(0, -1.5, -14);
     floor.receiveShadow = true;
-    this.officeEnvGroup.add(floor);
+    this.corridorEnvGroup.add(floor);
 
-    // Baseboard along back wall
-    const baseboardGeo = new THREE.BoxGeometry(36, 0.18, 0.06);
-    const baseboardMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 });
-    const baseboard = new THREE.Mesh(baseboardGeo, baseboardMat);
-    baseboard.position.set(0, -1.41, -27.97);
-    this.officeEnvGroup.add(baseboard);
+    // Center Hallway Runner Carpet (Width: 1.8m)
+    const runnerGeo = new THREE.PlaneGeometry(1.8, 30);
+    const runnerMat = new THREE.MeshStandardMaterial({
+      color: 0x0284c7,
+      roughness: 0.85,
+      metalness: 0.02
+    });
+    const runner = new THREE.Mesh(runnerGeo, runnerMat);
+    runner.rotation.x = -Math.PI / 2;
+    runner.position.set(0, -1.49, -14);
+    runner.receiveShadow = true;
+    this.corridorEnvGroup.add(runner);
 
-    // Back Wall (Z = -28m)
-    const wallGeo = new THREE.PlaneGeometry(36, 18);
+    // 2. Ceiling (Width: 4.2m, Height: 3.0m)
+    const ceilingGeo = new THREE.PlaneGeometry(4.2, 32);
+    const ceilingMat = new THREE.MeshStandardMaterial({
+      color: 0x334155,
+      roughness: 0.9
+    });
+    const ceiling = new THREE.Mesh(ceilingGeo, ceilingMat);
+    ceiling.rotation.x = Math.PI / 2;
+    ceiling.position.set(0, 3.0, -14);
+    this.corridorEnvGroup.add(ceiling);
+
+    // Recessed LED Ceiling Light Strips down the hallway
+    for (let z = -2; z >= -26; z -= 6) {
+      const panelGeo = new THREE.BoxGeometry(0.8, 0.04, 1.8);
+      const panelMat = new THREE.MeshBasicMaterial({ color: 0xfffbeb });
+      const panel = new THREE.Mesh(panelGeo, panelMat);
+      panel.position.set(0, 2.97, z);
+      this.corridorEnvGroup.add(panel);
+    }
+
+    // 3. Left Wall (X = -2.1m)
+    const leftWallGeo = new THREE.PlaneGeometry(32, 4.5);
     const wallMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.92 });
-    const backWall = new THREE.Mesh(wallGeo, wallMat);
-    backWall.position.set(0, 7.5, -28);
-    backWall.receiveShadow = true;
-    this.officeEnvGroup.add(backWall);
-
-    // Left Wall
-    const leftWallGeo = new THREE.PlaneGeometry(40, 18);
     const leftWall = new THREE.Mesh(leftWallGeo, wallMat);
     leftWall.rotation.y = Math.PI / 2;
-    leftWall.position.set(-18, 7.5, -12);
+    leftWall.position.set(-2.1, 0.75, -14);
     leftWall.receiveShadow = true;
-    this.officeEnvGroup.add(leftWall);
+    this.corridorEnvGroup.add(leftWall);
 
-    // Right Wall
-    const rightWallGeo = new THREE.PlaneGeometry(40, 18);
+    // 4. Right Wall (X = 2.1m)
+    const rightWallGeo = new THREE.PlaneGeometry(32, 4.5);
     const rightWall = new THREE.Mesh(rightWallGeo, wallMat);
     rightWall.rotation.y = -Math.PI / 2;
-    rightWall.position.set(18, 7.5, -12);
+    rightWall.position.set(2.1, 0.75, -14);
     rightWall.receiveShadow = true;
-    this.officeEnvGroup.add(rightWall);
+    this.corridorEnvGroup.add(rightWall);
 
-    /* =========================================================================
-     * COMPACT WARM WOOD DESK (1/4 SIZE LENGTH: 0.9m x 0.45m x 0.08m)
-     * Warm natural mahogany wood texture color (#6c3b17 / #78350f)
-     * ========================================================================= */
-    const deskGeo = new THREE.BoxGeometry(0.9, 0.08, 0.45);
+    // 5. Back Corridor Wall (Z = -28.0m)
+    const backWallGeo = new THREE.PlaneGeometry(4.2, 4.5);
+    const backWall = new THREE.Mesh(backWallGeo, wallMat);
+    backWall.position.set(0, 0.75, -28.0);
+    backWall.receiveShadow = true;
+    this.corridorEnvGroup.add(backWall);
+
+    // Baseboards along corridor floor edges
+    const baseMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 });
+    const baseLeft = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.18, 32), baseMat);
+    baseLeft.position.set(-2.06, -1.41, -14);
+    this.corridorEnvGroup.add(baseLeft);
+
+    const baseRight = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.18, 32), baseMat);
+    baseRight.position.set(2.06, -1.41, -14);
+    this.corridorEnvGroup.add(baseRight);
+
+    // Office Doors along hallway walls
+    this.buildOfficeDoors();
+
+    // Side Furniture in Corridor (Table, Chairs, Water Cooler)
+    this.buildSideFurniture();
+
+    // Wall Framed Art & Signage
+    this.buildWallDecorations();
+
+    // 6. Compact Warm Wood Toss Ledge (X = 0, Z = -0.75m)
+    const deskGeo = new THREE.BoxGeometry(0.8, 0.08, 0.45);
     const deskMat = new THREE.MeshStandardMaterial({
       color: 0x6c3b17,
       roughness: 0.38,
@@ -275,38 +323,74 @@ class GameRenderer {
     desk.position.set(0, -0.63, -0.75);
     desk.castShadow = true;
     desk.receiveShadow = true;
-    this.officeEnvGroup.add(desk);
+    this.corridorEnvGroup.add(desk);
 
-    // Bevelled Warm Wood Trim Ledge Accent
-    const trimGeo = new THREE.BoxGeometry(0.94, 0.02, 0.03);
+    // Bevelled Warm Wood Trim
+    const trimGeo = new THREE.BoxGeometry(0.84, 0.02, 0.03);
     const trimMat = new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.25, metalness: 0.3 });
     const trim = new THREE.Mesh(trimGeo, trimMat);
     trim.position.set(0, -0.58, -0.52);
-    this.officeEnvGroup.add(trim);
+    this.corridorEnvGroup.add(trim);
 
     // Desk Legs
     const legGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.9, 12);
-    const legMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 });
-    [[-0.4, -1.08, -0.6], [0.4, -1.08, -0.6], [-0.4, -1.08, -0.9], [0.4, -1.08, -0.9]].forEach(p => {
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.3 });
+    [[-0.35, -1.08, -0.6], [0.35, -1.08, -0.6], [-0.35, -1.08, -0.9], [0.35, -1.08, -0.9]].forEach(p => {
       const leg = new THREE.Mesh(legGeo, legMat);
       leg.position.set(...p);
       leg.castShadow = true;
-      this.officeEnvGroup.add(leg);
+      this.corridorEnvGroup.add(leg);
     });
 
-    this.buildRightSideTable();
-    this.buildChairsAroundTable();
-    this.buildCoffeeMug();
-    this.buildDeskAccessories();
-    this.buildOfficePoster();
-    this.buildOfficeWindow();
-
-    this.scene.add(this.officeEnvGroup);
+    this.scene.add(this.corridorEnvGroup);
   }
 
-  buildRightSideTable() {
+  buildOfficeDoors() {
+    const doorFrameMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4 });
+    const doorMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.5 });
+    const knobMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.1 });
+
+    const createDoor = (x, z, isLeftWall) => {
+      const doorGroup = new THREE.Group();
+
+      const frameGeo = new THREE.BoxGeometry(0.06, 2.2, 1.1);
+      const frame = new THREE.Mesh(frameGeo, doorFrameMat);
+      doorGroup.add(frame);
+
+      const panelGeo = new THREE.BoxGeometry(0.04, 2.1, 1.0);
+      const panel = new THREE.Mesh(panelGeo, doorMat);
+      panel.position.x = isLeftWall ? 0.02 : -0.02;
+      doorGroup.add(panel);
+
+      const knobGeo = new THREE.SphereGeometry(0.04, 12, 12);
+      const knob = new THREE.Mesh(knobGeo, knobMat);
+      knob.position.set(isLeftWall ? 0.06 : -0.06, 0, 0.38);
+      doorGroup.add(knob);
+
+      doorGroup.position.set(x, -0.35, z);
+      this.corridorEnvGroup.add(doorGroup);
+    };
+
+    // Doors along Left Wall
+    createDoor(-2.08, -6.0, true);
+    createDoor(-2.08, -14.0, true);
+    createDoor(-2.08, -22.0, true);
+
+    // Doors along Right Wall
+    createDoor(2.08, -10.0, false);
+    createDoor(2.08, -18.0, false);
+
+    // Back Center Corridor Double Door
+    const backDoorGeo = new THREE.BoxGeometry(1.6, 2.3, 0.06);
+    const backDoor = new THREE.Mesh(backDoorGeo, doorMat);
+    backDoor.position.set(0, -0.3, -27.96);
+    this.corridorEnvGroup.add(backDoor);
+  }
+
+  buildSideFurniture() {
+    // 1. Corridor Side Table on Right (X = 1.3m, Z = -8.5m)
     const tableGroup = new THREE.Group();
-    const topGeo = new THREE.BoxGeometry(2.6, 0.08, 3.4);
+    const topGeo = new THREE.BoxGeometry(0.9, 0.08, 2.2);
     const tableMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.4 });
     const top = new THREE.Mesh(topGeo, tableMat);
     top.position.y = 1.0;
@@ -314,123 +398,95 @@ class GameRenderer {
     top.receiveShadow = true;
     tableGroup.add(top);
 
-    const legGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.0, 12);
-    const legMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 });
-    [[-1.1, 0.5, -1.5], [1.1, 0.5, -1.5], [-1.1, 0.5, 1.5], [1.1, 0.5, 1.5]].forEach(p => {
+    const legGeo = new THREE.CylinderGeometry(0.035, 0.035, 1.0, 12);
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8 });
+    [[-0.35, 0.5, -0.9], [0.35, 0.5, -0.9], [-0.35, 0.5, 0.9], [0.35, 0.5, 0.9]].forEach(p => {
       const leg = new THREE.Mesh(legGeo, legMat);
       leg.position.set(...p);
       leg.castShadow = true;
       tableGroup.add(leg);
     });
 
-    tableGroup.position.set(5.8, -1.5, -8.5);
-    this.officeEnvGroup.add(tableGroup);
-  }
+    tableGroup.position.set(1.3, -1.5, -8.5);
+    this.corridorEnvGroup.add(tableGroup);
 
-  buildChairsAroundTable() {
+    // 2. Chairs beside Side Table
     const chairMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.5 });
-    const legMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 });
-
-    const createChair = (x, z, rotationY) => {
+    const createChair = (x, z, rotY) => {
       const chair = new THREE.Group();
 
-      const seatGeo = new THREE.BoxGeometry(0.7, 0.06, 0.7);
+      const seatGeo = new THREE.BoxGeometry(0.55, 0.06, 0.55);
       const seat = new THREE.Mesh(seatGeo, chairMat);
       seat.position.y = 0.5;
       seat.castShadow = true;
       chair.add(seat);
 
-      const backGeo = new THREE.BoxGeometry(0.7, 0.6, 0.06);
+      const backGeo = new THREE.BoxGeometry(0.55, 0.5, 0.06);
       const back = new THREE.Mesh(backGeo, chairMat);
-      back.position.set(0, 0.8, -0.32);
+      back.position.set(0, 0.75, -0.25);
       back.castShadow = true;
       chair.add(back);
 
-      const legGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.5, 8);
-      [[-0.3, 0.25, -0.3], [0.3, 0.25, -0.3], [-0.3, 0.25, 0.3], [0.3, 0.25, 0.3]].forEach(p => {
+      const legGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.5, 8);
+      [[-0.22, 0.25, -0.22], [0.22, 0.25, -0.22], [-0.22, 0.25, 0.22], [0.22, 0.25, 0.22]].forEach(p => {
         const leg = new THREE.Mesh(legGeo, legMat);
         leg.position.set(...p);
         chair.add(leg);
       });
 
       chair.position.set(x, -1.5, z);
-      chair.rotation.y = rotationY;
-      this.officeEnvGroup.add(chair);
+      chair.rotation.y = rotY;
+      this.corridorEnvGroup.add(chair);
     };
 
-    createChair(5.8, -11.5, 0);
-    createChair(5.8, -5.5, Math.PI);
+    createChair(1.3, -11.5, 0);
+    createChair(1.3, -5.5, Math.PI);
+
+    // 3. Water Cooler on Left Side (X = -1.4m, Z = -10.0m)
+    const coolerGroup = new THREE.Group();
+    const bodyGeo = new THREE.BoxGeometry(0.4, 0.9, 0.4);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.3 });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 0.45;
+    coolerGroup.add(body);
+
+    const bottleGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.45, 16);
+    const bottleMat = new THREE.MeshPhysicalMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.65,
+      roughness: 0.1
+    });
+    const bottle = new THREE.Mesh(bottleGeo, bottleMat);
+    bottle.position.y = 1.1;
+    coolerGroup.add(bottle);
+
+    coolerGroup.position.set(-1.4, -1.5, -10.0);
+    this.corridorEnvGroup.add(coolerGroup);
   }
 
-  buildCoffeeMug() {
-    const mugGroup = new THREE.Group();
-    const mugGeo = new THREE.CylinderGeometry(0.04, 0.032, 0.08, 16);
-    const mugMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.2 });
-    const mug = new THREE.Mesh(mugGeo, mugMat);
-    mug.position.y = 0.04;
-    mug.castShadow = true;
-    mugGroup.add(mug);
+  buildWallDecorations() {
+    // Framed Office Artwork on Corridor Walls
+    const createArt = (x, z, rotY) => {
+      const artGroup = new THREE.Group();
+      const frameGeo = new THREE.BoxGeometry(1.4, 0.9, 0.04);
+      const frameMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4 });
+      const frame = new THREE.Mesh(frameGeo, frameMat);
+      artGroup.add(frame);
 
-    const liquidGeo = new THREE.CylinderGeometry(0.036, 0.036, 0.01, 16);
-    const liquidMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.1 });
-    const liquid = new THREE.Mesh(liquidGeo, liquidMat);
-    liquid.position.y = 0.075;
-    mugGroup.add(liquid);
+      const canvasGeo = new THREE.PlaneGeometry(1.3, 0.8);
+      const canvasMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 });
+      const canvas = new THREE.Mesh(canvasGeo, canvasMat);
+      canvas.position.z = 0.022;
+      artGroup.add(canvas);
 
-    const handleGeo = new THREE.TorusGeometry(0.028, 0.008, 8, 16, Math.PI);
-    const handle = new THREE.Mesh(handleGeo, mugMat);
-    handle.position.set(0.04, 0.04, 0);
-    handle.rotation.z = -Math.PI / 2;
-    mugGroup.add(handle);
+      artGroup.position.set(x, 0.8, z);
+      artGroup.rotation.y = rotY;
+      this.corridorEnvGroup.add(artGroup);
+    };
 
-    mugGroup.position.set(0.35, -0.58, -0.75);
-    this.officeEnvGroup.add(mugGroup);
-  }
-
-  buildDeskAccessories() {
-    const stickyGeo = new THREE.BoxGeometry(0.07, 0.012, 0.07);
-    const stickyMat = new THREE.MeshStandardMaterial({ color: 0xfde047, roughness: 0.9 });
-    const sticky = new THREE.Mesh(stickyGeo, stickyMat);
-    sticky.position.set(-0.35, -0.58, -0.72);
-    sticky.rotation.y = 0.15;
-    this.officeEnvGroup.add(sticky);
-  }
-
-  buildOfficePoster() {
-    const posterGroup = new THREE.Group();
-
-    const frameGeo = new THREE.BoxGeometry(2.6, 1.8, 0.06);
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4 });
-    const frame = new THREE.Mesh(frameGeo, frameMat);
-    posterGroup.add(frame);
-
-    const canvasGeo = new THREE.PlaneGeometry(2.4, 1.6);
-    const canvasMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 });
-    const canvasMesh = new THREE.Mesh(canvasGeo, canvasMat);
-    canvasMesh.position.z = 0.032;
-    posterGroup.add(canvasMesh);
-
-    posterGroup.position.set(0, 3.5, -27.95);
-    this.officeEnvGroup.add(posterGroup);
-  }
-
-  buildOfficeWindow() {
-    const windowGroup = new THREE.Group();
-
-    const frameGeo = new THREE.BoxGeometry(0.1, 5.0, 3.8);
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4 });
-    const frame = new THREE.Mesh(frameGeo, frameMat);
-    windowGroup.add(frame);
-
-    const glassGeo = new THREE.PlaneGeometry(3.6, 4.8);
-    const glassMat = new THREE.MeshBasicMaterial({ color: 0xbfdbfe, transparent: true, opacity: 0.85 });
-    const glass = new THREE.Mesh(glassGeo, glassMat);
-    glass.rotation.y = Math.PI / 2;
-    glass.position.x = 0.06;
-    windowGroup.add(glass);
-
-    windowGroup.position.set(-17.9, 3.2, -8);
-    this.officeEnvGroup.add(windowGroup);
+    createArt(-2.07, -10.0, Math.PI / 2);
+    createArt(2.07, -14.0, -Math.PI / 2);
   }
 
   /* =========================================================================
@@ -675,7 +731,7 @@ class GameRenderer {
     this.scene.add(this.ballShadowMesh);
   }
 
-  updateTrashBinPosition(targetX, targetZ, surfaceY = -1.45, environmentTheme = 'office', surfaceType = 'floor') {
+  updateTrashBinPosition(targetX, targetZ, surfaceY = -1.45, environmentTheme = 'corridor', surfaceType = 'floor') {
     this.currentSurfaceY = surfaceY;
     this.currentSurfaceType = surfaceType;
     this.trashBinGroup.position.set(targetX, surfaceY, -targetZ);
