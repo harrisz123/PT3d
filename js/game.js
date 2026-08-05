@@ -291,24 +291,16 @@ class PaperTossGame {
   }
 
   loop(timestamp) {
+    // Always schedule next frame FIRST so a thrown error never kills the loop
+    requestAnimationFrame((t) => this.loop(t));
+
     if (!this.lastTime) this.lastTime = timestamp;
     const dt = Math.min((timestamp - this.lastTime) / 1000, 0.05);
     this.lastTime = timestamp;
 
-    // 1. Update Physics
-    this.physics.update(dt);
-
-    // 2. Update Controls Live Energy Meter
-    if (this.controls) {
-      this.controls.update(dt);
-    }
-
-    // 3. Render 3D Frame
-    if (this.renderer) {
-      this.renderer.update(this.physics, dt);
-    }
-
-    requestAnimationFrame((t) => this.loop(t));
+    try { this.physics.update(dt); } catch(e) { console.error('Physics error:', e); }
+    try { if (this.controls && typeof this.controls.update === 'function') this.controls.update(dt); } catch(e) { console.error('Controls error:', e); }
+    try { if (this.renderer) this.renderer.update(this.physics, dt); } catch(e) { console.error('Renderer error:', e); }
   }
 }
 

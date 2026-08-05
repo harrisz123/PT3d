@@ -243,6 +243,15 @@ class TouchControls {
   setEnabled(state) {
     this.enabled = state;
   }
+
+  /**
+   * update(dt) — called every frame by the game loop.
+   * Currently used as a no-op hook; extend here if per-frame
+   * control logic is needed (e.g. inertia, gesture timeout).
+   */
+  update(dt) {
+    // no-op: touch events drive state; no per-frame logic needed
+  }
 }
 
 window.TouchControls = TouchControls;
