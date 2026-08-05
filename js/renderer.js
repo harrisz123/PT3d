@@ -48,6 +48,7 @@ class GameRenderer {
   }
 
   init() {
+    try {
     // 1. Scene setup
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0f172a);
@@ -58,7 +59,7 @@ class GameRenderer {
     this.camera = new THREE.PerspectiveCamera(58, aspect, 0.05, 100);
     this.updateCameraForAspect(aspect);
 
-    // 3. WebGL Renderer with cross-platform mobile compatibility
+    // 3. WebGL Renderer
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: false,
@@ -68,7 +69,9 @@ class GameRenderer {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.outputEncoding = THREE.sRGBEncoding;
+    if (THREE.sRGBEncoding !== undefined) {
+      this.renderer.outputEncoding = THREE.sRGBEncoding;
+    }
 
     this.container.appendChild(this.renderer.domElement);
 
@@ -89,6 +92,10 @@ class GameRenderer {
     window.addEventListener('orientationchange', () => {
       setTimeout(() => this.onWindowResize(), 150);
     });
+
+    } catch (err) {
+      console.error('[GameRenderer] Init failed:', err);
+    }
   }
 
   generateRealisticNotebookTexture() {
@@ -446,7 +453,7 @@ class GameRenderer {
     coolerGroup.add(body);
 
     const bottleGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.45, 16);
-    const bottleMat = new THREE.MeshPhysicalMaterial({
+    const bottleMat = new THREE.MeshStandardMaterial({
       color: 0x38bdf8,
       transparent: true,
       opacity: 0.65,

@@ -206,6 +206,16 @@ class SoundEngine {
     noise.start(t);
     noise.stop(t + duration);
   }
+
+  /* Score / Points Sound (alias of playSwish) */
+  playScore() {
+    this.playSwish();
+  }
+
+  /* Miss Sound (alias of playFloorDrop) */
+  playMiss() {
+    this.playFloorDrop();
+  }
 }
 
 window.soundEngine = new SoundEngine();
