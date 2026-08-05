@@ -1,6 +1,6 @@
 /**
  * Core Game Controller & State Manager for Paper Toss 3D
- * Classic Office Wild Shuffle Edition (Table, Chair, and Floor Surface Placement)
+ * Expansive Office Room Placement Edition (Synchronized Table, Chair, and Expansive Floor Space)
  */
 class PaperTossGame {
   constructor() {
@@ -10,9 +10,9 @@ class PaperTossGame {
     this.streak = 0;
     this.currentModeKey = 'random'; // SHUFFLE is the default and only mode!
 
-    // Mode Distance Ranges (Wild Shuffle across full room space)
+    // Mode Distance Ranges (Expansive Room Space: Z up to 16.0m, X up to +/-6.5m)
     this.modes = {
-      random: { name: 'Wild Shuffle', minZ: 3.2, maxZ: 10.5, minX: -3.0, maxX: 5.2 }
+      random: { name: 'Wild Shuffle', minZ: 3.0, maxZ: 16.0, minX: -6.5, maxX: 6.5 }
     };
 
     this.currentBinX = 0;
@@ -59,64 +59,67 @@ class PaperTossGame {
     this.repositionBin();
     this.updateHUD();
 
-    // Start Game Loop
-    requestAnimationFrame((time) => this.gameLoop(time));
-  }
+    // Attach Game Instance globally for renderer & controls access
+    window.gameInstance = this;
 
-  triggerHaptic(type) {
-    if (navigator && typeof navigator.vibrate === 'function') {
-      try {
-        if (type === 'light') navigator.vibrate(15);
-        else if (type === 'medium') navigator.vibrate(35);
-        else if (type === 'score') navigator.vibrate([40, 50, 60]);
-        else if (type === 'miss') navigator.vibrate([50, 30, 50]);
-      } catch (e) {}
-    }
+    // Start Game Loop
+    requestAnimationFrame((t) => this.loop(t));
   }
 
   setupUI() {
-    // Sound Mute Toggle
+    // Score HUD elements
+    this.scoreValEl = document.getElementById('score-val');
+    this.highScoreValEl = document.getElementById('highscore-val');
+    this.streakBadgeEl = document.getElementById('streak-badge');
+    this.streakCountEl = document.getElementById('streak-count');
+    this.targetDistanceEl = document.getElementById('target-distance-val');
+    this.targetSubEl = document.getElementById('target-offset-val');
+    this.popupContainerEl = document.getElementById('popup-container');
+    this.swipeGuideEl = document.getElementById('swipe-guide');
+
+    // System Action Buttons
     const audioBtn = document.getElementById('audio-btn');
-    if (audioBtn) {
-      audioBtn.addEventListener('click', () => {
-        window.soundEngine.init();
-        this.triggerHaptic('light');
-        const isMuted = window.soundEngine.toggleMute();
-        audioBtn.innerHTML = isMuted ? '🔇' : '🔊';
-      });
-    }
-
-    // Reset Game Button
     const resetBtn = document.getElementById('reset-btn');
-    if (resetBtn) {
-      resetBtn.addEventListener('click', () => {
-        this.score = 0;
-        this.streak = 0;
-        this.triggerHaptic('light');
-        this.updateHUD();
-        this.physics.resetBall();
-        this.repositionBin();
-        this.showPopup('GAME RESET', 'combo');
-      });
-    }
-
-    // Help Modal Triggers
     const helpBtn = document.getElementById('help-btn');
     const helpModal = document.getElementById('help-modal');
-    const modalClose = document.getElementById('modal-close');
-    const modalStart = document.getElementById('modal-start-btn');
+    const modalCloseBtn = document.getElementById('modal-close');
+    const modalStartBtn = document.getElementById('modal-start-btn');
+
+    if (audioBtn) {
+      audioBtn.addEventListener('click', () => {
+        const isMuted = window.soundEngine.toggleMute();
+        audioBtn.textContent = isMuted ? '🔇' : '🔊';
+        this.triggerHaptic('selection');
+      });
+    }
+
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        this.triggerHaptic('medium');
+        this.score = 0;
+        this.streak = 0;
+        this.updateHUD();
+        this.repositionBin();
+        this.physics.resetBall();
+        this.showPopup('RESET!', 'miss');
+      });
+    }
 
     if (helpBtn && helpModal) {
       helpBtn.addEventListener('click', () => {
-        this.triggerHaptic('light');
+        this.triggerHaptic('selection');
         helpModal.classList.add('active');
       });
     }
-    if (modalClose && helpModal) {
-      modalClose.addEventListener('click', () => helpModal.classList.remove('active'));
+
+    if (modalCloseBtn && helpModal) {
+      modalCloseBtn.addEventListener('click', () => {
+        helpModal.classList.remove('active');
+      });
     }
-    if (modalStart && helpModal) {
-      modalStart.addEventListener('click', () => {
+
+    if (modalStartBtn && helpModal) {
+      modalStartBtn.addEventListener('click', () => {
         window.soundEngine.init();
         this.triggerHaptic('light');
         helpModal.classList.remove('active');
@@ -124,27 +127,34 @@ class PaperTossGame {
     }
   }
 
+  /* =========================================================================
+   * EXPANSIVE BIN REPOSITIONING SYSTEM:
+   * Placed dynamically across the expanded 36m x 40m room space:
+   * - 25% Chance: Sitting flush ON TABLE TOP (X = 5.8m, Z = 8.5m, Y = -0.5m)
+   * - 15% Chance: Sitting flush ON CHAIR SEAT (X = 5.8m, Z = 11.5m / 5.5m, Y = -1.0m)
+   * - 60% Chance: Floor placement across expansive room area (Z = 3.0m - 16.0m, X = -6.5m - 6.5m)
+   * ========================================================================= */
   repositionBin() {
     const config = this.modes.random;
     const rand = Math.random();
 
     let targetX, targetZ, surfaceY, surfaceType;
 
-    // 25% Chance to place bin ON TABLE TOP
+    // 25% Chance to place bin ON TABLE TOP (X = 5.8m, Z = 8.5m)
     if (rand < 0.25) {
-      targetX = 4.5;
-      targetZ = 6.5;
+      targetX = 5.8;
+      targetZ = 8.5;
       surfaceY = -0.5; // Table top surface height
       surfaceType = 'table';
     } 
-    // 15% Chance to place bin ON CHAIR SEAT
+    // 15% Chance to place bin ON CHAIR SEAT (X = 5.8m, Z = 11.5m or 5.5m)
     else if (rand >= 0.25 && rand < 0.40) {
-      targetX = 4.5;
-      targetZ = Math.random() > 0.5 ? 9.0 : 4.0;
+      targetX = 5.8;
+      targetZ = Math.random() > 0.5 ? 11.5 : 5.5;
       surfaceY = -1.0; // Chair seat height
       surfaceType = 'chair';
     } 
-    // Otherwise place bin ON FLOOR
+    // 60% Chance to place bin ON EXPANSIVE FLOOR AREA
     else {
       targetZ = config.minZ + Math.random() * (config.maxZ - config.minZ);
       targetX = config.minX + Math.random() * (config.maxX - config.minX);
@@ -164,27 +174,34 @@ class PaperTossGame {
   }
 
   updateTargetUI() {
-    const distanceEl = document.getElementById('target-distance-val');
-    const offsetEl = document.getElementById('target-offset-val');
+    if (this.targetDistanceEl) {
+      this.targetDistanceEl.textContent = `${this.currentBinZ.toFixed(1)}m`;
+    }
 
-    if (distanceEl) distanceEl.textContent = `${this.currentBinZ.toFixed(1)}m`;
-    if (offsetEl) {
-      let locationText = 'ON FLOOR';
-      if (this.currentSurfaceType === 'table') locationText = 'ON TABLE 🛋️';
-      else if (this.currentSurfaceType === 'chair') locationText = 'ON CHAIR 🪑';
-      else {
-        const side = this.currentBinX > 0.2 ? 'RIGHT' : (this.currentBinX < -0.2 ? 'LEFT' : 'CENTER');
-        locationText = `${side} (${Math.abs(this.currentBinX).toFixed(1)}m)`;
+    if (this.targetSubEl) {
+      let offsetStr = 'ON FLOOR';
+      if (this.currentSurfaceType === 'table') {
+        offsetStr = 'ON TABLE';
+      } else if (this.currentSurfaceType === 'chair') {
+        offsetStr = 'ON CHAIR';
+      } else {
+        const offX = this.currentBinX;
+        if (Math.abs(offX) < 0.3) {
+          offsetStr = 'CENTER';
+        } else if (offX < 0) {
+          offsetStr = `LEFT (${Math.abs(offX).toFixed(1)}m)`;
+        } else {
+          offsetStr = `RIGHT (${offX.toFixed(1)}m)`;
+        }
       }
-      offsetEl.textContent = locationText;
+      this.targetSubEl.textContent = offsetStr;
     }
   }
 
   handleSwish(hasRimHit) {
     if (this.isResetting) return;
-    this.isResetting = true;
 
-    this.score++;
+    this.score += hasRimHit ? 1 : 2;
     this.streak++;
 
     if (this.score > this.highScore) {
@@ -192,89 +209,110 @@ class PaperTossGame {
       localStorage.setItem('paper_toss_high_score', this.highScore.toString());
     }
 
-    window.soundEngine.playSwish();
-    this.triggerHaptic('score');
-
-    if (this.streak >= 3) {
-      this.showPopup(`STREAK x${this.streak}!`, 'combo');
-      window.soundEngine.playCheer();
-      this.renderer.triggerConfettiCelebration();
-    } else if (hasRimHit) {
-      this.showPopup('BANK SHOT! +1', 'swish');
+    if (hasRimHit) {
+      window.soundEngine.playScore();
+      this.showPopup('RIM SHOT! +1', 'combo');
+      this.triggerHaptic('medium');
     } else {
-      this.showPopup('SWISH! +1', 'swish');
+      window.soundEngine.playSwish();
+      this.showPopup('SWISH! +2', 'swish');
+      this.triggerHaptic('success');
     }
 
+    this.renderer.triggerConfettiCelebration();
     this.updateHUD();
 
-    setTimeout(() => {
-      this.repositionBin();
-      this.isResetting = false;
-    }, 1200);
-  }
-
-  handleMiss() {
-    if (this.isResetting) return;
     this.isResetting = true;
-
-    this.streak = 0;
-    this.showPopup('MISS!', 'miss');
-    this.triggerHaptic('miss');
-    this.updateHUD();
-
     setTimeout(() => {
       this.repositionBin();
+      this.physics.resetBall();
       this.isResetting = false;
     }, 1400);
   }
 
+  handleMiss() {
+    if (this.isResetting) return;
+
+    window.soundEngine.playMiss();
+    this.triggerHaptic('error');
+    this.streak = 0;
+    this.showPopup('MISS!', 'miss');
+    this.updateHUD();
+
+    this.isResetting = true;
+    setTimeout(() => {
+      this.physics.resetBall();
+      this.isResetting = false;
+    }, 1200);
+  }
+
   updateHUD() {
-    const scoreEl = document.getElementById('score-val');
-    const highScoreEl = document.getElementById('highscore-val');
-    const streakBadge = document.getElementById('streak-badge');
-    const streakCount = document.getElementById('streak-count');
+    if (this.scoreValEl) this.scoreValEl.textContent = this.score;
+    if (this.highScoreValEl) this.highScoreValEl.textContent = this.highScore;
 
-    if (scoreEl) scoreEl.textContent = this.score;
-    if (highScoreEl) highScoreEl.textContent = this.highScore;
-
-    if (streakBadge && streakCount) {
-      if (this.streak >= 2) {
-        streakCount.textContent = this.streak;
-        streakBadge.style.display = 'flex';
+    if (this.streakBadgeEl && this.streakCountEl) {
+      if (this.streak > 1) {
+        this.streakCountEl.textContent = this.streak;
+        this.streakBadgeEl.style.display = 'flex';
       } else {
-        streakBadge.style.display = 'none';
+        this.streakBadgeEl.style.display = 'none';
       }
     }
   }
 
-  showPopup(text, type = 'swish') {
-    const popupContainer = document.getElementById('popup-container');
-    if (!popupContainer) return;
-
-    popupContainer.innerHTML = `<div class="popup-text ${type} show">${text}</div>`;
-    setTimeout(() => {
-      popupContainer.innerHTML = '';
-    }, 1200);
+  showPopup(text, styleClass) {
+    if (!this.popupContainerEl) return;
+    this.popupContainerEl.innerHTML = '';
+    const pop = document.createElement('div');
+    pop.className = `popup-text ${styleClass} show`;
+    pop.textContent = text;
+    this.popupContainerEl.appendChild(pop);
   }
 
   hideSwipeGuide() {
-    const guide = document.getElementById('swipe-guide');
-    if (guide) guide.style.display = 'none';
+    if (this.swipeGuideEl) {
+      this.swipeGuideEl.style.opacity = '0';
+    }
   }
 
-  gameLoop(currentTime) {
-    if (!this.lastTime) this.lastTime = currentTime;
-    const dt = (currentTime - this.lastTime) / 1000;
-    this.lastTime = currentTime;
+  triggerHaptic(type) {
+    if (!navigator.vibrate) return;
+    try {
+      switch (type) {
+        case 'light': navigator.vibrate(10); break;
+        case 'medium': navigator.vibrate(25); break;
+        case 'selection': navigator.vibrate(15); break;
+        case 'success': navigator.vibrate([15, 30, 40]); break;
+        case 'error': navigator.vibrate([40, 40, 40]); break;
+      }
+    } catch (e) {
+      // Haptics unavailable
+    }
+  }
 
+  loop(timestamp) {
+    if (!this.lastTime) this.lastTime = timestamp;
+    const dt = Math.min((timestamp - this.lastTime) / 1000, 0.05);
+    this.lastTime = timestamp;
+
+    // 1. Update Physics
     this.physics.update(dt);
-    this.renderer.update(this.physics, dt);
 
-    requestAnimationFrame((time) => this.gameLoop(time));
+    // 2. Update Controls Live Energy Meter
+    if (this.controls) {
+      this.controls.update(dt);
+    }
+
+    // 3. Render 3D Frame
+    if (this.renderer) {
+      this.renderer.update(this.physics, dt);
+    }
+
+    requestAnimationFrame((t) => this loop(t));
   }
 }
 
 // Instantiate game on page load
 window.addEventListener('DOMContentLoaded', () => {
-  window.gameInstance = new PaperTossGame();
+  window.paperTossGame = new PaperTossGame();
 });
