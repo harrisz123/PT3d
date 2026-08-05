@@ -1,7 +1,7 @@
 /**
  * Three.js WebGL Scene Renderer for Paper Toss 3D
  * Classic Office Corridor / Hallway Environment Edition
- * Optimized specifically for 19.5:9 & 20:9 Portrait Smartphone Displays
+ * 100% Mobile Browser Compatibility (Standard WebGL Depth & High-DPI Support)
  */
 class GameRenderer {
   constructor(containerElement) {
@@ -58,20 +58,17 @@ class GameRenderer {
     this.camera = new THREE.PerspectiveCamera(58, aspect, 0.05, 100);
     this.updateCameraForAspect(aspect);
 
-    // 3. WebGL Renderer with High-DPI & Logarithmic Depth support
+    // 3. WebGL Renderer with cross-platform mobile compatibility
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: false,
-      powerPreference: 'high-performance',
-      logarithmicDepthBuffer: true
+      powerPreference: 'high-performance'
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputEncoding = THREE.sRGBEncoding;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.1;
 
     this.container.appendChild(this.renderer.domElement);
 
@@ -142,8 +139,7 @@ class GameRenderer {
 
   /* =========================================================================
    * CORRIDOR CAMERA CALIBRATION FOR PORTRAIT SMARTPHONE SCREENS:
-   * Frames the 4.0m wide hallway down its length, eliminating wide side gaps
-   * and fitting 100% of the game area within modern 19.5:9 / 20:9 screens!
+   * Frames the 4.2m wide hallway down its length cleanly without side clipping!
    * ========================================================================= */
   updateCameraForAspect(aspect) {
     if (aspect < 0.55) {
@@ -190,7 +186,7 @@ class GameRenderer {
 
   setupLighting() {
     // Ambient warmth
-    const ambientLight = new THREE.AmbientLight(0xfef3c7, 0.65);
+    const ambientLight = new THREE.AmbientLight(0xfef3c7, 0.75);
     this.scene.add(ambientLight);
 
     // Primary hallway directional light
@@ -218,7 +214,6 @@ class GameRenderer {
   /* =========================================================================
    * CLASSIC 3D OFFICE CORRIDOR / HALLWAY DESIGN SYSTEM
    * Width: 4.2m, Height: 4.5m, Depth: 32.0m
-   * Perfectly proportioned for tall narrow smartphone screens!
    * ========================================================================= */
   buildOfficeCorridorEnvironment() {
     this.corridorEnvGroup = new THREE.Group();
@@ -466,7 +461,6 @@ class GameRenderer {
   }
 
   buildWallDecorations() {
-    // Framed Office Artwork on Corridor Walls
     const createArt = (x, z, rotY) => {
       const artGroup = new THREE.Group();
       const frameGeo = new THREE.BoxGeometry(1.4, 0.9, 0.04);
@@ -689,15 +683,13 @@ class GameRenderer {
     }
     baseGeo.computeVertexNormals();
 
-    this.paperMaterial = new THREE.MeshPhysicalMaterial({
+    this.paperMaterial = new THREE.MeshStandardMaterial({
       map: this.notebookTexture,
       bumpMap: this.notebookTexture,
       bumpScale: 0.045,
-      roughness: 0.88,
+      roughness: 0.9,
       metalness: 0.0,
-      clearcoat: 0.15,
-      clearcoatRoughness: 0.65,
-      color: 0xfdfbf5
+      color: 0xffffff
     });
 
     this.paperBallMesh = new THREE.Mesh(baseGeo, this.paperMaterial);
