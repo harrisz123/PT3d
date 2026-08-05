@@ -3,131 +3,769 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Paper Toss 3D - Smartphone 19.5:9 Edition</title>
-  <meta name="description" content="Play Paper Toss 3D online! Optimized for 5.4+ inch smartphones with 19.5:9 to 20:9 ratios and 360x760pt logical resolutions.">
-  
-  <!-- CSS Design System -->
-  <link rel="stylesheet" href="style.css">
-  
-  <!-- Three.js 3D Engine -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <title>Paper Toss 3D</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html,body{
+      width:100%;height:100%;
+      overflow:hidden;
+      background:#0f172a;
+      font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;
+      touch-action:none;
+    }
+    #canvas-container{
+      position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;
+    }
+    #canvas-container canvas{display:block;width:100%!important;height:100%!important;}
+    #ui{
+      position:fixed;top:0;left:0;width:100%;height:100%;z-index:10;
+      pointer-events:none;
+    }
+    /* Header */
+    #header{
+      position:absolute;top:0;left:0;right:0;
+      display:flex;justify-content:space-between;align-items:flex-start;
+      padding:env(safe-area-inset-top,12px) 14px 0;
+      padding-top:max(env(safe-area-inset-top),12px);
+    }
+    .brand{
+      display:flex;align-items:center;gap:6px;
+      background:rgba(15,23,42,0.75);
+      backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius:20px;padding:7px 14px;
+      pointer-events:all;
+    }
+    .brand-title{font-size:13px;font-weight:700;color:#f8fafc;letter-spacing:0.5px;}
+    .hud-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+    .icon-row{
+      display:flex;gap:6px;pointer-events:all;
+    }
+    .icon-btn{
+      width:36px;height:36px;border-radius:10px;border:none;
+      background:rgba(15,23,42,0.75);backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,0.12);
+      color:#f8fafc;font-size:15px;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .score-row{
+      display:flex;gap:6px;pointer-events:none;
+    }
+    .score-pill{
+      display:flex;flex-direction:column;align-items:center;
+      background:rgba(15,23,42,0.75);backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,0.12);border-radius:10px;
+      padding:4px 12px;min-width:48px;
+    }
+    .score-lbl{font-size:9px;font-weight:600;color:#94a3b8;letter-spacing:0.5px;}
+    .score-num{font-size:18px;font-weight:800;color:#f8fafc;}
+    .score-pill.hi .score-num{color:#f59e0b;}
+    /* Target badge */
+    #target{
+      position:absolute;top:0;left:0;right:0;
+      display:flex;justify-content:center;
+      padding-top:max(env(safe-area-inset-top),12px);
+      margin-top:52px;
+      pointer-events:none;
+    }
+    .target-badge{
+      display:flex;align-items:center;gap:6px;
+      background:rgba(15,23,42,0.75);backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,0.12);border-radius:20px;
+      padding:5px 12px;
+    }
+    .target-val{font-size:13px;font-weight:700;color:#f8fafc;}
+    .target-sub{font-size:11px;font-weight:600;color:#f59e0b;}
+    /* Energy Meter */
+    #energy{
+      position:absolute;left:14px;
+      bottom:max(env(safe-area-inset-bottom),20px);
+      margin-bottom:90px;
+      display:none;flex-direction:column;gap:4px;
+      background:rgba(15,23,42,0.8);backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,0.12);border-radius:12px;
+      padding:8px 12px;min-width:80px;pointer-events:none;
+    }
+    #energy.show{display:flex;}
+    .meter-lbl{font-size:9px;font-weight:700;color:#94a3b8;display:flex;justify-content:space-between;}
+    .meter-track{width:100%;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;}
+    .meter-fill{height:100%;width:0%;background:linear-gradient(90deg,#38bdf8,#3b82f6);border-radius:3px;transition:width 0.05s linear;}
+    .meter-est{font-size:9px;color:#94a3b8;text-align:center;}
+    /* Streak */
+    #streak{
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+      display:none;align-items:center;gap:4px;
+      background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);
+      border-radius:20px;padding:5px 14px;pointer-events:none;
+    }
+    #streak.show{display:flex;}
+    .streak-text{font-size:13px;font-weight:700;color:#f59e0b;}
+    /* Popup */
+    #popup{
+      position:absolute;top:38%;left:0;right:0;
+      display:flex;justify-content:center;pointer-events:none;
+    }
+    .pop{
+      font-size:26px;font-weight:900;letter-spacing:-0.5px;
+      animation:popIn 0.2s ease-out;padding:6px 20px;border-radius:16px;
+    }
+    .pop.swish{color:#10b981;text-shadow:0 0 20px rgba(16,185,129,0.6);}
+    .pop.rim{color:#f59e0b;text-shadow:0 0 20px rgba(245,158,11,0.6);}
+    .pop.miss{color:#ef4444;text-shadow:0 0 20px rgba(239,68,68,0.4);}
+    @keyframes popIn{from{opacity:0;transform:scale(0.5) translateY(12px);}to{opacity:1;transform:scale(1) translateY(0);}}
+    /* Swipe guide */
+    #guide{
+      position:absolute;bottom:max(env(safe-area-inset-bottom),20px);
+      left:0;right:0;
+      display:flex;flex-direction:column;align-items:center;gap:6px;
+      transition:opacity 0.5s;pointer-events:none;
+    }
+    .guide-arrow{
+      width:0;height:0;
+      border-left:8px solid transparent;border-right:8px solid transparent;
+      border-bottom:14px solid rgba(255,255,255,0.3);
+      animation:bounce 1.2s ease-in-out infinite;
+    }
+    .guide-text{font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);letter-spacing:1px;}
+    @keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+  </style>
 </head>
 <body>
 
-  <!-- WebGL 3D Canvas Container -->
-  <div id="canvas-container"></div>
-  <div id="vignette-overlay"></div>
+<div id="canvas-container"></div>
 
-  <!-- UI Overlay Layer -->
-  <div id="ui-overlay">
-    
-    <!-- Smartphone 19.5:9 Header -->
-    <header class="ios18-header">
-      <!-- Row 1: Brand & Action Icons -->
-      <div class="header-row row-top">
-        <div class="brand-pill interactive">
-          <span class="brand-icon">🗑️</span>
-          <span class="brand-title">PAPER TOSS</span>
-        </div>
-
-        <div class="icon-actions interactive">
-          <button id="audio-btn" class="icon-btn" title="Toggle Audio">🔊</button>
-          <button id="reset-btn" class="icon-btn" title="Reset Game">🔄</button>
-          <button id="help-btn" class="icon-btn" title="How to Play">❓</button>
-        </div>
-      </div>
-
-      <!-- Row 2: Target Badge & Score Badges -->
-      <div class="header-row row-bottom">
-        <div class="target-badge interactive">
-          <span class="target-icon">🎯</span>
-          <span id="target-distance-val" class="target-val">5.0m</span>
-          <span id="target-offset-val" class="target-sub">ON FLOOR</span>
-        </div>
-
-        <div class="score-actions interactive">
-          <div id="streak-badge" class="streak-pill">
-            <span>🔥</span>
-            <span id="streak-count">0</span>
-          </div>
-
-          <div class="score-pill">
-            <span class="score-lbl">SCORE</span>
-            <span id="score-val" class="score-num">0</span>
-          </div>
-
-          <div class="score-pill highlight">
-            <span class="score-lbl">BEST</span>
-            <span id="highscore-val" class="score-num">0</span>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <!-- Dynamic Touch Flick Energy / Power Meter -->
-    <div id="energy-meter" class="energy-meter-hud">
-      <div class="meter-label">
-        <span class="meter-title">PWR</span>
-        <span id="meter-percent" class="meter-val">0%</span>
-      </div>
-      <div class="meter-track">
-        <div id="meter-fill" class="meter-fill-bar"></div>
-      </div>
-      <div id="meter-dist-est" class="meter-est">EST. 0.0m</div>
+<div id="ui">
+  <div id="header">
+    <div class="brand">
+      <span>🗑️</span>
+      <span class="brand-title">PAPER TOSS</span>
     </div>
-
-    <!-- Dynamic Popup Message Container -->
-    <div id="popup-container"></div>
-
-    <!-- Swipe Guide Prompt -->
-    <div id="swipe-guide">
-      <div class="guide-arrow"></div>
-      <span class="guide-text">SWIPE UP TO FLICK</span>
-    </div>
-
-  </div>
-
-  <!-- How to Play Instructions Modal -->
-  <div id="help-modal" class="modal-overlay">
-    <div class="modal-card">
-      <div class="modal-title">
-        <span>How to Play</span>
-        <button id="modal-close" class="modal-close">&times;</button>
+    <div class="hud-right">
+      <div class="icon-row">
+        <button class="icon-btn" id="btn-audio">🔊</button>
+        <button class="icon-btn" id="btn-reset">🔄</button>
       </div>
-
-      <div class="instruction-list">
-        <div class="instruction-item">
-          <div class="instruction-num">1</div>
-          <span><strong>Energy Meter:</strong> Watch the live power gauge when dragging up to gauge toss distance!</span>
+      <div class="score-row">
+        <div class="score-pill">
+          <span class="score-lbl">SCORE</span>
+          <span class="score-num" id="score">0</span>
         </div>
-        <div class="instruction-item">
-          <div class="instruction-num">2</div>
-          <span><strong>Swipe Up / Touch Drag:</strong> Flick the paper ball towards the trash bin.</span>
-        </div>
-        <div class="instruction-item">
-          <div class="instruction-num">3</div>
-          <span><strong>Two-Finger Drag:</strong> Adjust the camera view to whatever angle feels comfortable.</span>
-        </div>
-        <div class="instruction-item">
-          <div class="instruction-num">4</div>
-          <span><strong>Dynamic Bin Target:</strong> The trash bin moves to random locations on tables, chairs, or floors!</span>
-        </div>
-        <div class="instruction-item">
-          <div class="instruction-num">5</div>
-          <span><strong>Haptic Feedback:</strong> Enjoy subtle vibration pulses on launch, rim hits, and scores.</span>
+        <div class="score-pill hi">
+          <span class="score-lbl">BEST</span>
+          <span class="score-num" id="best">0</span>
         </div>
       </div>
-
-      <button id="modal-start-btn" class="btn-primary">PLAY NOW</button>
     </div>
   </div>
 
-  <!-- Application Scripts -->
-  <script src="js/audio.js"></script>
-  <script src="js/physics.js"></script>
-  <script src="js/renderer.js"></script>
-  <script src="js/controls.js"></script>
-  <script src="js/game.js"></script>
+  <div id="target">
+    <div class="target-badge">
+      <span>🎯</span>
+      <span class="target-val" id="t-dist">5.0m</span>
+      <span class="target-sub" id="t-surf">ON FLOOR</span>
+    </div>
+  </div>
 
+  <div id="streak">
+    <span>🔥</span>
+    <span class="streak-text" id="streak-count">2x</span>
+  </div>
+
+  <div id="energy">
+    <div class="meter-lbl"><span>PWR</span><span id="e-pct">0%</span></div>
+    <div class="meter-track"><div class="meter-fill" id="e-fill"></div></div>
+    <div class="meter-est" id="e-est">0.0m</div>
+  </div>
+
+  <div id="popup"></div>
+
+  <div id="guide">
+    <div class="guide-arrow"></div>
+    <span class="guide-text">SWIPE UP TO FLICK</span>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function() {
+'use strict';
+
+// ─── GLOBALS ─────────────────────────────────────────────────────────────────
+const W = () => window.innerWidth;
+const H = () => window.innerHeight;
+
+// ─── SCENE / RENDERER ────────────────────────────────────────────────────────
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1a2e);
+
+const camera = new THREE.PerspectiveCamera(62, W()/H(), 0.1, 80);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(W(), H());
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+// ─── CAMERA SETUP ────────────────────────────────────────────────────────────
+function setupCamera() {
+  const asp = W() / H();
+  if (asp < 0.65) {
+    // Portrait phone
+    camera.fov = 65;
+    camera.position.set(0, 1.2, 3.5);
+  } else if (asp < 1.0) {
+    // Portrait tablet
+    camera.fov = 60;
+    camera.position.set(0, 1.1, 3.2);
+  } else {
+    // Landscape
+    camera.fov = 55;
+    camera.position.set(0, 1.0, 3.0);
+  }
+  camera.aspect = asp;
+  camera.updateProjectionMatrix();
+  camera.lookAt(0, 0, -6);
+}
+setupCamera();
+
+// ─── LIGHTING ────────────────────────────────────────────────────────────────
+const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+scene.add(ambient);
+
+const sun = new THREE.DirectionalLight(0xfff5e0, 1.2);
+sun.position.set(1, 5, 3);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.near = 0.5;
+sun.shadow.camera.far = 30;
+sun.shadow.camera.left = -5;
+sun.shadow.camera.right = 5;
+sun.shadow.camera.top = 8;
+sun.shadow.camera.bottom = -3;
+scene.add(sun);
+
+// Fill light from front-left
+const fill = new THREE.DirectionalLight(0xc7e0ff, 0.5);
+fill.position.set(-2, 2, 4);
+scene.add(fill);
+
+// ─── CORRIDOR ENVIRONMENT ────────────────────────────────────────────────────
+// Office corridor: 3.2m wide, 3.5m tall, 28m deep
+// Perfectly fits portrait phone screens!
+const CORRIDOR_W = 3.2;
+const CORRIDOR_H = 3.5;
+const CORRIDOR_D = 28;
+const FLOOR_Y    = -1.5;
+
+const mat = {
+  floor:    new THREE.MeshLambertMaterial({ color: 0x2a2a3a }),
+  carpet:   new THREE.MeshLambertMaterial({ color: 0x1a4a7a }),
+  wall:     new THREE.MeshLambertMaterial({ color: 0x3a3a4a }),
+  ceiling:  new THREE.MeshLambertMaterial({ color: 0x252535 }),
+  door:     new THREE.MeshLambertMaterial({ color: 0x5c3317 }),
+  doorFrame: new THREE.MeshLambertMaterial({ color: 0x1a1a2a }),
+  metal:    new THREE.MeshLambertMaterial({ color: 0x9ca3af }),
+  dark:     new THREE.MeshLambertMaterial({ color: 0x0f172a }),
+  wood:     new THREE.MeshLambertMaterial({ color: 0x6c3b17 }),
+  woodLight:new THREE.MeshLambertMaterial({ color: 0x78350f }),
+  white:    new THREE.MeshLambertMaterial({ color: 0xe2e8f0 }),
+  lightPanel: new THREE.MeshBasicMaterial({ color: 0xfff9e6 }),
+  blue:     new THREE.MeshLambertMaterial({ color: 0x0284c7 }),
+};
+
+function box(w,h,d,m,x,y,z) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), m);
+  mesh.position.set(x,y,z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+  return mesh;
+}
+
+// Floor
+box(CORRIDOR_W, 0.05, CORRIDOR_D, mat.floor, 0, FLOOR_Y, -CORRIDOR_D/2 + 2);
+// Carpet runner
+box(1.4, 0.01, CORRIDOR_D-2, mat.carpet, 0, FLOOR_Y+0.03, -CORRIDOR_D/2 + 2);
+// Ceiling
+box(CORRIDOR_W, 0.05, CORRIDOR_D, mat.ceiling, 0, FLOOR_Y+CORRIDOR_H, -CORRIDOR_D/2 + 2);
+// Left wall
+box(0.05, CORRIDOR_H, CORRIDOR_D, mat.wall, -CORRIDOR_W/2, FLOOR_Y+CORRIDOR_H/2, -CORRIDOR_D/2 + 2);
+// Right wall
+box(0.05, CORRIDOR_H, CORRIDOR_D, mat.wall, CORRIDOR_W/2, FLOOR_Y+CORRIDOR_H/2, -CORRIDOR_D/2 + 2);
+// Back wall
+box(CORRIDOR_W, CORRIDOR_H, 0.05, mat.wall, 0, FLOOR_Y+CORRIDOR_H/2, -CORRIDOR_D+2);
+// Baseboards
+box(0.06, 0.15, CORRIDOR_D, mat.dark, -CORRIDOR_W/2+0.03, FLOOR_Y+0.075, -CORRIDOR_D/2+2);
+box(0.06, 0.15, CORRIDOR_D, mat.dark,  CORRIDOR_W/2-0.03, FLOOR_Y+0.075, -CORRIDOR_D/2+2);
+
+// LED ceiling panels
+for (let z = -2; z >= -24; z -= 5) {
+  box(0.6, 0.04, 1.4, mat.lightPanel, 0, FLOOR_Y+CORRIDOR_H-0.03, z);
+}
+
+// Corridor doors - left wall
+[-5, -12, -19].forEach(z => {
+  box(0.05, 2.1, 0.9, mat.doorFrame, -CORRIDOR_W/2+0.04, FLOOR_Y+1.05, z);
+  box(0.03, 2.0, 0.82, mat.door, -CORRIDOR_W/2+0.06, FLOOR_Y+1.0, z);
+});
+// Corridor doors - right wall
+[-8, -16].forEach(z => {
+  box(0.05, 2.1, 0.9, mat.doorFrame, CORRIDOR_W/2-0.04, FLOOR_Y+1.05, z);
+  box(0.03, 2.0, 0.82, mat.door, CORRIDOR_W/2-0.06, FLOOR_Y+1.0, z);
+});
+
+// Side table (right wall, Z=-8)
+box(0.8, 0.06, 1.8, mat.woodLight, 1.0, FLOOR_Y+0.98, -8);
+[-0.3, 0.3].forEach(ox => [-0.7, 0.7].forEach(oz =>
+  box(0.04, 1.0, 0.04, mat.dark, 1.0+ox, FLOOR_Y+0.5, -8+oz)
+));
+
+// Chairs beside table
+[-10.5, -5.5].forEach((z, i) => {
+  const cx = 0.95;
+  box(0.5, 0.05, 0.5, mat.blue, cx, FLOOR_Y+0.46, z);
+  box(0.5, 0.45, 0.05, mat.blue, cx, FLOOR_Y+0.68, z-(i===0?-0.22:0.22));
+  [-0.2,0.2].forEach(ox => [-0.2,0.2].forEach(oz =>
+    box(0.04, 0.48, 0.04, mat.dark, cx+ox, FLOOR_Y+0.24, z+oz)
+  ));
+});
+
+// Water cooler (left wall)
+box(0.35, 0.85, 0.35, mat.white, -1.1, FLOOR_Y+0.425, -10);
+box(0.28, 0.42, 0.28, mat.blue,  -1.1, FLOOR_Y+1.06,  -10);
+
+// Wall art frames
+box(1.2, 0.75, 0.04, mat.dark, -CORRIDOR_W/2+0.04, FLOOR_Y+2.0, -10);
+box(1.0, 0.6,  0.02, mat.blue, -CORRIDOR_W/2+0.05, FLOOR_Y+2.0, -10);
+box(1.2, 0.75, 0.04, mat.dark, CORRIDOR_W/2-0.04, FLOOR_Y+2.0, -15);
+box(1.0, 0.6,  0.02, mat.blue, CORRIDOR_W/2-0.05, FLOOR_Y+2.0, -15);
+
+// Toss desk (where player stands)
+box(0.8, 0.06, 0.45, mat.wood, 0, FLOOR_Y+0.33, -0.8);
+[-0.3,0.3].forEach(ox => [-0.15,0.15].forEach(oz =>
+  box(0.03, 0.35, 0.03, mat.dark, ox, FLOOR_Y+0.15, -0.8+oz)
+));
+
+// ─── PAPER BALL ─────────────────────────────────────────────────────────────
+const ballGeo = new THREE.IcosahedronGeometry(0.08, 2);
+const ballMat = new THREE.MeshLambertMaterial({ color: 0xfdf6e3 });
+const ball    = new THREE.Mesh(ballGeo, ballMat);
+ball.castShadow = true;
+scene.add(ball);
+
+// Ball shadow disc
+const shadowGeo = new THREE.CircleGeometry(0.12, 16);
+const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25, depthWrite: false });
+const ballShadow = new THREE.Mesh(shadowGeo, shadowMat);
+ballShadow.rotation.x = -Math.PI/2;
+ballShadow.position.y = FLOOR_Y + 0.01;
+scene.add(ballShadow);
+
+// ─── TRASH BIN ───────────────────────────────────────────────────────────────
+const binGroup = new THREE.Group();
+
+// Bin body (wireframe)
+const binBodyGeo = new THREE.CylinderGeometry(0.32, 0.24, 0.72, 20, 1, true);
+const binBodyMat = new THREE.MeshLambertMaterial({ color: 0x64748b, wireframe: true, side: THREE.DoubleSide });
+const binBody = new THREE.Mesh(binBodyGeo, binBodyMat);
+binBody.position.y = 0.36;
+binGroup.add(binBody);
+
+// Bin rim
+const rimGeo = new THREE.TorusGeometry(0.32, 0.022, 10, 28);
+const rimMat = new THREE.MeshLambertMaterial({ color: 0xcbd5e1 });
+const rim = new THREE.Mesh(rimGeo, rimMat);
+rim.rotation.x = Math.PI/2;
+rim.position.y = 0.72;
+binGroup.add(rim);
+
+// Bin base
+const baseGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.03, 20);
+const baseMat = new THREE.MeshLambertMaterial({ color: 0x1e293b });
+const base = new THREE.Mesh(baseGeo, baseMat);
+base.position.y = 0.015;
+binGroup.add(base);
+
+scene.add(binGroup);
+
+// ─── TRAJECTORY DOTS ─────────────────────────────────────────────────────────
+const NUM_DOTS = 12;
+const dots = [];
+const dotGeo = new THREE.SphereGeometry(0.025, 6, 6);
+for (let i = 0; i < NUM_DOTS; i++) {
+  const dm = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 });
+  const d = new THREE.Mesh(dotGeo, dm);
+  d.visible = false;
+  scene.add(d);
+  dots.push(d);
+}
+
+// ─── GAME STATE ──────────────────────────────────────────────────────────────
+let score  = 0;
+let best   = parseInt(localStorage.getItem('pt3d_best') || '0');
+let streak = 0;
+let isResetting = false;
+let guideVisible = true;
+
+// Ball physics
+const BIN_RIM_R  = 0.32;
+const BIN_RIM_H  = 0.72;
+const BALL_R     = 0.08;
+const BALL_START = { x: 0, y: FLOOR_Y+0.42, z: -0.8 };
+let bPos   = { ...BALL_START };
+let bVel   = { x: 0, y: 0, z: 0 };
+let bRot   = { x: 0, y: 0, z: 0 };
+let bAngV  = { x: 0, y: 0, z: 0 };
+let bState = 'IDLE'; // IDLE FLYING BOUNCING SCORED MISSED
+let hasRim = false;
+
+// Bin position
+let binX = 0, binZ = 5, binSurfY = FLOOR_Y, binSurf = 'floor';
+
+function placeBin() {
+  const r = Math.random();
+  if (r < 0.25) {
+    // On side table
+    binX = 1.0; binZ = 8; binSurfY = FLOOR_Y + 1.01; binSurf = 'table';
+  } else if (r < 0.40) {
+    // On chair
+    binX = 0.95; binZ = Math.random() > 0.5 ? 10.5 : 5.5; binSurfY = FLOOR_Y + 0.49; binSurf = 'chair';
+  } else {
+    // Floor - corridor width ±1.0m, depth 3.5-16m
+    binX = (Math.random() - 0.5) * 2.0;
+    binZ = 3.5 + Math.random() * 12.5;
+    binSurfY = FLOOR_Y; binSurf = 'floor';
+  }
+  binGroup.position.set(binX, binSurfY, -binZ);
+  // Update UI
+  document.getElementById('t-dist').textContent = binZ.toFixed(1) + 'm';
+  document.getElementById('t-surf').textContent =
+    binSurf === 'table' ? 'ON TABLE' :
+    binSurf === 'chair' ? 'ON CHAIR' :
+    Math.abs(binX) < 0.15 ? 'CENTER' :
+    binX < 0 ? 'LEFT' : 'RIGHT';
+}
+
+function resetBall() {
+  bPos   = { ...BALL_START };
+  bVel   = { x: 0, y: 0, z: 0 };
+  bRot   = { x: 0, y: 0, z: 0 };
+  bAngV  = { x: 0, y: 0, z: 0 };
+  bState = 'IDLE';
+  hasRim = false;
+}
+
+placeBin();
+resetBall();
+
+// ─── PHYSICS UPDATE ──────────────────────────────────────────────────────────
+function physicsUpdate(dt) {
+  if (bState === 'IDLE') return;
+
+  const G = 9.81;
+  const DRAG = 0.10;
+
+  // Spin
+  bRot.x += bAngV.x * dt;
+  bRot.y += bAngV.y * dt;
+  bRot.z += bAngV.z * dt;
+
+  if (bState === 'FLYING' || bState === 'BOUNCING') {
+    bVel.y -= G * dt;
+    const d = 1 - DRAG * dt;
+    bVel.x *= d; bVel.y *= d; bVel.z *= d;
+    bPos.x += bVel.x * dt;
+    bPos.y += bVel.y * dt;
+    bPos.z += bVel.z * dt;
+    checkCollisions();
+  } else if (bState === 'SCORED') {
+    const botY = binSurfY + 0.06;
+    if (bPos.y > botY) { bPos.y -= 1.8 * dt; bVel.x *= 0.2; bVel.z *= 0.2; }
+  }
+
+  // Out of bounds
+  if (bPos.z < -30 || Math.abs(bPos.x) > 8 || bPos.y < FLOOR_Y - 2) {
+    if (bState !== 'SCORED' && bState !== 'MISSED') onMiss();
+  }
+}
+
+function checkCollisions() {
+  const rimY   = binSurfY + BIN_RIM_H;
+  const dx     = bPos.x - binX;
+  const dz     = bPos.z - (-binZ);
+  const distXZ = Math.sqrt(dx*dx + dz*dz);
+
+  // SCORE: ball passes through rim from above
+  if (bState === 'FLYING' && bPos.y <= rimY && bPos.y >= rimY - 0.18) {
+    if (distXZ < BIN_RIM_R - 0.04) {
+      bState = 'SCORED';
+      bVel.x *= 0.05; bVel.z *= 0.05; bVel.y = -0.5;
+      onScore();
+      return;
+    }
+  }
+
+  // RIM HIT
+  const edgeDist = Math.abs(distXZ - BIN_RIM_R);
+  if (edgeDist < BALL_R + 0.02 && Math.abs(bPos.y - rimY) < 0.18) {
+    if (!hasRim) { hasRim = true; vibrate(20); }
+    bState = 'BOUNCING';
+    const nx = distXZ > 0.001 ? dx/distXZ : 1;
+    const nz = distXZ > 0.001 ? dz/distXZ : 0;
+    const dot = bVel.x*nx + bVel.z*nz;
+    bVel.x = (bVel.x - 2 * dot * nx) * 0.6;
+    bVel.z = (bVel.z - 2 * dot * nz) * 0.6;
+    bVel.y = Math.abs(bVel.y) * 0.4 + 1.0;
+  }
+
+  // FLOOR / SURFACE COLLISION
+  let floorY = FLOOR_Y + BALL_R;
+  if (binSurf === 'table' && Math.abs(dx) < 0.65 && Math.abs(dz) < 1.1) floorY = binSurfY + BALL_R + 0.06;
+  if (binSurf === 'chair' && Math.abs(dx) < 0.4  && Math.abs(dz) < 0.4)  floorY = binSurfY + BALL_R + 0.05;
+
+  if (bPos.y <= floorY) {
+    bPos.y = floorY;
+    if (Math.abs(bVel.y) > 0.6) {
+      bVel.y = -bVel.y * 0.3;
+      bVel.x *= 0.5; bVel.z *= 0.5;
+    } else {
+      bVel = { x:0, y:0, z:0 };
+      bAngV = { x:0, y:0, z:0 };
+      if (bState !== 'SCORED' && bState !== 'MISSED') {
+        bState = 'MISSED';
+        onMiss();
+      }
+    }
+  }
+}
+
+// ─── GAME EVENTS ─────────────────────────────────────────────────────────────
+function onScore() {
+  score += hasRim ? 1 : 2;
+  streak++;
+  if (score > best) { best = score; localStorage.setItem('pt3d_best', best); }
+  document.getElementById('score').textContent = score;
+  document.getElementById('best').textContent  = best;
+  updateStreak();
+  showPop(hasRim ? 'RIM SHOT! +1' : 'SWISH! +2', hasRim ? 'rim' : 'swish');
+  vibrate(hasRim ? 30 : [20,40,60]);
+  if (!isResetting) {
+    isResetting = true;
+    setTimeout(() => { placeBin(); resetBall(); isResetting = false; }, 1400);
+  }
+}
+
+function onMiss() {
+  streak = 0;
+  updateStreak();
+  showPop('MISS!', 'miss');
+  vibrate([40,20,40]);
+  if (!isResetting) {
+    isResetting = true;
+    setTimeout(() => { resetBall(); isResetting = false; }, 1100);
+  }
+}
+
+function updateStreak() {
+  const el = document.getElementById('streak');
+  if (streak >= 2) {
+    document.getElementById('streak-count').textContent = streak + 'x';
+    el.classList.add('show');
+  } else {
+    el.classList.remove('show');
+  }
+}
+
+let popTimer = null;
+function showPop(text, cls) {
+  const el = document.getElementById('popup');
+  el.innerHTML = `<div class="pop ${cls}">${text}</div>`;
+  if (popTimer) clearTimeout(popTimer);
+  popTimer = setTimeout(() => { el.innerHTML = ''; }, 1200);
+}
+
+function vibrate(pattern) {
+  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch(e) {}
+}
+
+// ─── TOUCH / SWIPE CONTROLS ──────────────────────────────────────────────────
+let touchStartX = 0, touchStartY = 0, touchStartT = 0;
+let isDragging = false;
+let smoothImpulse = { x:0, y:0, z:0 };
+let track = [];
+
+const eFill = document.getElementById('e-fill');
+const ePct  = document.getElementById('e-pct');
+const eEst  = document.getElementById('e-est');
+const eHud  = document.getElementById('energy');
+
+function onTouchStart(cx, cy) {
+  if (cy < H() * 0.25) return;
+  isDragging   = true;
+  touchStartX  = cx;
+  touchStartY  = cy;
+  touchStartT  = performance.now();
+  track        = [{ x:cx, y:cy, t: touchStartT }];
+  smoothImpulse = { x:0, y:0, z:0 };
+  eHud.classList.add('show');
+  if (guideVisible) {
+    document.getElementById('guide').style.opacity = '0';
+    guideVisible = false;
+  }
+}
+
+function onTouchMove(cx, cy) {
+  if (!isDragging) return;
+  const now = performance.now();
+  track.push({ x:cx, y:cy, t:now });
+  if (track.length > 5) track.shift();
+
+  const deltaX = cx - touchStartX;
+  const deltaY = touchStartY - cy;
+
+  const p0 = track[0], pN = track[track.length-1];
+  const dt0 = Math.max(16, pN.t - p0.t);
+  const speedY = ((p0.y - pN.y) / dt0) * 1000;
+  const powerInput = Math.max(deltaY, speedY);
+
+  const tImpX = (deltaX / (W() * 0.4)) * 4.0;
+  const tImpY = Math.min(Math.max(powerInput / 800 * 3.5 + 2.5, 4.0), 9.0);
+  const tImpZ = -Math.min(Math.max(powerInput / 700 * 6.0 + 4.5, 5.0), 16.0);
+
+  const a = 0.45;
+  smoothImpulse.x += (tImpX - smoothImpulse.x) * a;
+  smoothImpulse.y += (tImpY - smoothImpulse.y) * a;
+  smoothImpulse.z += (tImpZ - smoothImpulse.z) * a;
+
+  const pct  = Math.min(100, Math.round(Math.max(0, (powerInput - 100) / 1600 * 100)));
+  const est  = Math.abs(smoothImpulse.z * 0.75);
+
+  eFill.style.width = pct + '%';
+  eFill.style.background = pct > 80 ? 'linear-gradient(90deg,#f59e0b,#ef4444)'
+                         : pct > 50 ? 'linear-gradient(90deg,#10b981,#f59e0b)'
+                         : 'linear-gradient(90deg,#38bdf8,#3b82f6)';
+  ePct.textContent  = pct + '%';
+  eEst.textContent  = 'EST. ' + est.toFixed(1) + 'm';
+
+  updateDots(pct, { ...smoothImpulse });
+}
+
+function onTouchEnd(cx, cy) {
+  if (!isDragging) return;
+  isDragging = false;
+  const dy  = touchStartY - cy;
+  const dur = performance.now() - touchStartT;
+
+  if (dy > 25 && dur < 600 && bState === 'IDLE') {
+    bVel  = { ...smoothImpulse };
+    bAngV = { x: (Math.random()-0.5)*14, y:(Math.random()-0.5)*8, z: smoothImpulse.x * -1.5 };
+    bState = 'FLYING';
+    vibrate(15);
+  }
+
+  dots.forEach(d => d.visible = false);
+  setTimeout(() => eHud.classList.remove('show'), 1400);
+}
+
+// Mouse support for desktop testing
+const cvs = renderer.domElement;
+cvs.addEventListener('mousedown',  e => onTouchStart(e.clientX, e.clientY));
+window.addEventListener('mousemove', e => { if (isDragging) onTouchMove(e.clientX, e.clientY); });
+window.addEventListener('mouseup',   e => onTouchEnd(e.clientX, e.clientY));
+
+cvs.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) onTouchStart(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: true });
+window.addEventListener('touchmove', e => {
+  if (e.touches.length === 1) onTouchMove(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: true });
+window.addEventListener('touchend', e => {
+  if (e.changedTouches.length > 0) onTouchEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+}, { passive: true });
+
+// ─── TRAJECTORY DOTS ─────────────────────────────────────────────────────────
+function updateDots(pct, imp) {
+  if (pct < 3) { dots.forEach(d => d.visible = false); return; }
+
+  let px = bPos.x, py = bPos.y, pz = bPos.z;
+  let vx = imp.x,  vy = imp.y,  vz = imp.z;
+  const step = 0.04, drag = 0.10;
+
+  for (let i = 0; i < NUM_DOTS; i++) {
+    vy -= 9.81 * step;
+    const df = 1 - drag * step;
+    vx *= df; vy *= df; vz *= df;
+    px += vx * step; py += vy * step; pz += vz * step;
+
+    dots[i].visible = true;
+    dots[i].position.set(px, py, pz);
+    const s = 1 - (i / NUM_DOTS) * 0.5;
+    dots[i].scale.setScalar(s);
+
+    // Color hint based on proximity to bin
+    const dx = px - binX, dz = pz - (-binZ);
+    const d2 = Math.sqrt(dx*dx + dz*dz);
+    dots[i].material.color.setHex(d2 < BIN_RIM_R ? 0x10b981 : 0x38bdf8);
+  }
+}
+
+// ─── UI BUTTONS ──────────────────────────────────────────────────────────────
+document.getElementById('btn-reset').addEventListener('click', () => {
+  score = 0; streak = 0;
+  document.getElementById('score').textContent = '0';
+  updateStreak();
+  placeBin(); resetBall();
+  showPop('RESET!', 'miss');
+  vibrate(20);
+});
+
+let muted = false;
+document.getElementById('btn-audio').addEventListener('click', () => {
+  muted = !muted;
+  document.getElementById('btn-audio').textContent = muted ? '🔇' : '🔊';
+});
+
+// ─── RESIZE ──────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  renderer.setSize(W(), H());
+  setupCamera();
+});
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => { renderer.setSize(W(), H()); setupCamera(); }, 200);
+});
+
+// ─── RENDER LOOP ─────────────────────────────────────────────────────────────
+let last = 0;
+function loop(ts) {
+  requestAnimationFrame(loop);
+  const dt = Math.min((ts - last) / 1000, 0.05);
+  last = ts;
+
+  physicsUpdate(dt);
+
+  // Sync ball mesh
+  ball.position.set(bPos.x, bPos.y, bPos.z);
+  ball.rotation.set(bRot.x, bRot.y, bRot.z);
+
+  // Ball shadow
+  ballShadow.position.x = bPos.x;
+  ballShadow.position.z = bPos.z;
+  const heightAboveFloor = bPos.y - FLOOR_Y;
+  ballShadow.material.opacity = Math.max(0, 0.28 - heightAboveFloor * 0.06);
+  const ss = Math.max(0.3, 1.0 - heightAboveFloor * 0.08);
+  ballShadow.scale.set(ss, ss, ss);
+
+  // Gentle camera yaw toward bin
+  const targetLookX = binX * 0.08;
+  camera.lookAt(targetLookX, 0, -6);
+
+  renderer.render(scene, camera);
+}
+
+requestAnimationFrame(loop);
+
+})();
+</script>
 </body>
 </html>
